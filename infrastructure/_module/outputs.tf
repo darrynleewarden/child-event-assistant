@@ -62,3 +62,48 @@ output "lambda_function_arn" {
   description = "Lambda function ARN"
   value       = aws_lambda_function.child_event_manager_bedrock_invoker.arn
 }
+
+# =============================================================================
+# Database Outputs
+# =============================================================================
+
+output "db_endpoint" {
+  description = "RDS instance endpoint"
+  value       = var.enable_database ? aws_db_instance.child_event_manager_main[0].endpoint : null
+}
+
+output "db_address" {
+  description = "RDS instance address (hostname)"
+  value       = var.enable_database ? aws_db_instance.child_event_manager_main[0].address : null
+}
+
+output "db_port" {
+  description = "RDS instance port"
+  value       = var.enable_database ? aws_db_instance.child_event_manager_main[0].port : null
+}
+
+output "db_name" {
+  description = "Database name"
+  value       = var.enable_database ? aws_db_instance.child_event_manager_main[0].db_name : null
+}
+
+output "db_username" {
+  description = "Database master username"
+  value       = var.enable_database ? aws_db_instance.child_event_manager_main[0].username : null
+}
+
+output "db_secret_arn" {
+  description = "ARN of the Secrets Manager secret containing database credentials"
+  value       = var.enable_database ? aws_secretsmanager_secret.child_event_manager_db[0].arn : null
+}
+
+output "database_url" {
+  description = "Full database connection URL (without password - retrieve from Secrets Manager)"
+  value       = var.enable_database ? "postgresql://${var.db_username}:<password>@${aws_db_instance.child_event_manager_main[0].address}:5432/${var.db_name}" : null
+  sensitive   = false
+}
+
+output "vpc_id" {
+  description = "VPC ID (if database is enabled)"
+  value       = var.enable_database ? aws_vpc.child_event_manager_main[0].id : null
+}

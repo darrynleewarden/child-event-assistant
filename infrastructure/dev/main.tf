@@ -40,6 +40,22 @@ module "bedrock_agent" {
   ]
   cors_allow_credentials = true
 
+  # =============================================================================
+  # Database Configuration
+  # =============================================================================
+  enable_database            = true
+  db_name                    = "child_event_assistant"
+  db_username                = "postgres"
+  db_instance_class          = "db.t3.micro" # Free tier eligible
+  db_allocated_storage       = 20
+  db_max_allocated_storage   = 50
+  db_backup_retention_period = 7
+  db_publicly_accessible     = true # Allow access from local machine
+
+  # IMPORTANT: Restrict this to your IP address for security
+  # You can find your IP at https://whatismyipaddress.com/
+  db_allowed_cidr_blocks = ["0.0.0.0/0"] # TODO: Replace with your IP/32 for security
+
   tags = {
     Application = "ChildEventManager"
     Component   = "BedrockAgent"

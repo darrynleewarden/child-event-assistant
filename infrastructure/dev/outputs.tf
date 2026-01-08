@@ -37,3 +37,47 @@ output "s3_bucket_name" {
   description = "The name of the S3 bucket for knowledge base data (if enabled)"
   value       = module.bedrock_agent.s3_bucket_name
 }
+
+output "api_endpoint" {
+  description = "API Gateway endpoint URL"
+  value       = module.bedrock_agent.api_endpoint
+}
+
+output "api_invoke_url" {
+  description = "Full API invoke URL"
+  value       = module.bedrock_agent.api_invoke_url
+}
+
+# =============================================================================
+# Database Outputs
+# =============================================================================
+
+output "db_endpoint" {
+  description = "RDS instance endpoint"
+  value       = module.bedrock_agent.db_endpoint
+}
+
+output "db_address" {
+  description = "RDS instance address (hostname)"
+  value       = module.bedrock_agent.db_address
+}
+
+output "db_name" {
+  description = "Database name"
+  value       = module.bedrock_agent.db_name
+}
+
+output "db_username" {
+  description = "Database master username"
+  value       = module.bedrock_agent.db_username
+}
+
+output "db_secret_arn" {
+  description = "ARN of the Secrets Manager secret containing database credentials"
+  value       = module.bedrock_agent.db_secret_arn
+}
+
+output "database_url_template" {
+  description = "Database URL template (retrieve password from Secrets Manager)"
+  value       = module.bedrock_agent.database_url
+}
