@@ -1,5 +1,5 @@
 # IAM Role for Bedrock Agent
-resource "aws_iam_role" "bedrock_agent" {
+resource "aws_iam_role" "child_event_manager_bedrock_agent" {
   name = "${local.agent_name}-agent-role"
 
   assume_role_policy = jsonencode({
@@ -33,9 +33,9 @@ resource "aws_iam_role" "bedrock_agent" {
 }
 
 # Policy for Bedrock Agent to invoke foundation model
-resource "aws_iam_role_policy" "bedrock_agent_model" {
+resource "aws_iam_role_policy" "child_event_manager_bedrock_agent_model" {
   name = "${local.agent_name}-model-policy"
-  role = aws_iam_role.bedrock_agent.id
+  role = aws_iam_role.child_event_manager_bedrock_agent.id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -52,7 +52,7 @@ resource "aws_iam_role_policy" "bedrock_agent_model" {
 }
 
 # IAM Role for Knowledge Base (if enabled)
-resource "aws_iam_role" "knowledge_base" {
+resource "aws_iam_role" "child_event_manager_knowledge_base" {
   count = var.enable_knowledge_base ? 1 : 0
   name  = "${local.agent_name}-kb-role"
 
@@ -87,10 +87,10 @@ resource "aws_iam_role" "knowledge_base" {
 }
 
 # Policy for Knowledge Base to access S3
-resource "aws_iam_role_policy" "knowledge_base_s3" {
+resource "aws_iam_role_policy" "child_event_manager_knowledge_base_s3" {
   count = var.enable_knowledge_base ? 1 : 0
   name  = "${local.agent_name}-kb-s3-policy"
-  role  = aws_iam_role.knowledge_base[0].id
+  role  = aws_iam_role.child_event_manager_knowledge_base[0].id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -102,8 +102,8 @@ resource "aws_iam_role_policy" "knowledge_base_s3" {
           "s3:ListBucket"
         ]
         Resource = [
-          aws_s3_bucket.knowledge_base[0].arn,
-          "${aws_s3_bucket.knowledge_base[0].arn}/*"
+          aws_s3_bucket.child_event_manager_knowledge_base[0].arn,
+          "${aws_s3_bucket.child_event_manager_knowledge_base[0].arn}/*"
         ]
       }
     ]
@@ -111,10 +111,10 @@ resource "aws_iam_role_policy" "knowledge_base_s3" {
 }
 
 # Policy for Knowledge Base to invoke embedding model
-resource "aws_iam_role_policy" "knowledge_base_bedrock" {
+resource "aws_iam_role_policy" "child_event_manager_knowledge_base_bedrock" {
   count = var.enable_knowledge_base ? 1 : 0
   name  = "${local.agent_name}-kb-bedrock-policy"
-  role  = aws_iam_role.knowledge_base[0].id
+  role  = aws_iam_role.child_event_manager_knowledge_base[0].id
 
   policy = jsonencode({
     Version = "2012-10-17"

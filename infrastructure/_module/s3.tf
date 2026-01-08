@@ -1,5 +1,5 @@
 # S3 Bucket for Knowledge Base Data
-resource "aws_s3_bucket" "knowledge_base" {
+resource "aws_s3_bucket" "child_event_manager_knowledge_base" {
   count  = var.enable_knowledge_base ? 1 : 0
   bucket = "${local.agent_name}-kb-data"
 
@@ -13,9 +13,9 @@ resource "aws_s3_bucket" "knowledge_base" {
 }
 
 # S3 Bucket Versioning
-resource "aws_s3_bucket_versioning" "knowledge_base" {
+resource "aws_s3_bucket_versioning" "child_event_manager_knowledge_base" {
   count  = var.enable_knowledge_base ? 1 : 0
-  bucket = aws_s3_bucket.knowledge_base[0].id
+  bucket = aws_s3_bucket.child_event_manager_knowledge_base[0].id
 
   versioning_configuration {
     status = "Enabled"
@@ -23,9 +23,9 @@ resource "aws_s3_bucket_versioning" "knowledge_base" {
 }
 
 # S3 Bucket Server Side Encryption
-resource "aws_s3_bucket_server_side_encryption_configuration" "knowledge_base" {
+resource "aws_s3_bucket_server_side_encryption_configuration" "child_event_manager_knowledge_base" {
   count  = var.enable_knowledge_base ? 1 : 0
-  bucket = aws_s3_bucket.knowledge_base[0].id
+  bucket = aws_s3_bucket.child_event_manager_knowledge_base[0].id
 
   rule {
     apply_server_side_encryption_by_default {
@@ -35,9 +35,9 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "knowledge_base" {
 }
 
 # S3 Bucket Public Access Block
-resource "aws_s3_bucket_public_access_block" "knowledge_base" {
+resource "aws_s3_bucket_public_access_block" "child_event_manager_knowledge_base" {
   count  = var.enable_knowledge_base ? 1 : 0
-  bucket = aws_s3_bucket.knowledge_base[0].id
+  bucket = aws_s3_bucket.child_event_manager_knowledge_base[0].id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -46,9 +46,9 @@ resource "aws_s3_bucket_public_access_block" "knowledge_base" {
 }
 
 # S3 Bucket Policy for Bedrock
-resource "aws_s3_bucket_policy" "knowledge_base" {
+resource "aws_s3_bucket_policy" "child_event_manager_knowledge_base" {
   count  = var.enable_knowledge_base ? 1 : 0
-  bucket = aws_s3_bucket.knowledge_base[0].id
+  bucket = aws_s3_bucket.child_event_manager_knowledge_base[0].id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -64,8 +64,8 @@ resource "aws_s3_bucket_policy" "knowledge_base" {
           "s3:ListBucket"
         ]
         Resource = [
-          aws_s3_bucket.knowledge_base[0].arn,
-          "${aws_s3_bucket.knowledge_base[0].arn}/*"
+          aws_s3_bucket.child_event_manager_knowledge_base[0].arn,
+          "${aws_s3_bucket.child_event_manager_knowledge_base[0].arn}/*"
         ]
         Condition = {
           StringEquals = {

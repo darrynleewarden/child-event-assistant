@@ -1,9 +1,9 @@
 # Knowledge Base
-resource "aws_bedrockagent_knowledge_base" "main" {
+resource "aws_bedrockagent_knowledge_base" "child_event_manager_main" {
   count       = var.enable_knowledge_base ? 1 : 0
   name        = "${local.agent_name}-kb"
   description = var.knowledge_base_description
-  role_arn    = aws_iam_role.knowledge_base[0].arn
+  role_arn    = aws_iam_role.child_event_manager_knowledge_base[0].arn
 
   knowledge_base_configuration {
     type = "VECTOR"
@@ -15,7 +15,7 @@ resource "aws_bedrockagent_knowledge_base" "main" {
   storage_configuration {
     type = "OPENSEARCH_SERVERLESS"
     opensearch_serverless_configuration {
-      collection_arn    = aws_opensearchserverless_collection.main[0].arn
+      collection_arn    = aws_opensearchserverless_collection.child_event_manager_main[0].arn
       vector_index_name = "bedrock-knowledge-base-index"
       field_mapping {
         metadata_field = "AMAZON_BEDROCK_METADATA"
@@ -34,23 +34,23 @@ resource "aws_bedrockagent_knowledge_base" "main" {
   )
 
   depends_on = [
-    aws_opensearchserverless_access_policy.main,
-    aws_opensearchserverless_security_policy.encryption,
-    aws_opensearchserverless_security_policy.network
+    aws_opensearchserverless_access_policy.child_event_manager_main,
+    aws_opensearchserverless_security_policy.child_event_manager_encryption,
+    aws_opensearchserverless_security_policy.child_event_manager_network
   ]
 }
 
 # Data Source for Knowledge Base
-resource "aws_bedrockagent_data_source" "main" {
+resource "aws_bedrockagent_data_source" "child_event_manager_main" {
   count             = var.enable_knowledge_base ? 1 : 0
-  knowledge_base_id = aws_bedrockagent_knowledge_base.main[0].id
+  knowledge_base_id = aws_bedrockagent_knowledge_base.child_event_manager_main[0].id
   name              = "${local.agent_name}-datasource"
   description       = "S3 data source for knowledge base"
 
   data_source_configuration {
     type = "S3"
     s3_configuration {
-      bucket_arn = aws_s3_bucket.knowledge_base[0].arn
+      bucket_arn = aws_s3_bucket.child_event_manager_knowledge_base[0].arn
     }
   }
 
@@ -66,7 +66,7 @@ resource "aws_bedrockagent_data_source" "main" {
 }
 
 # OpenSearch Serverless Collection
-resource "aws_opensearchserverless_collection" "main" {
+resource "aws_opensearchserverless_collection" "child_event_manager_main" {
   count = var.enable_knowledge_base ? 1 : 0
   name  = replace("${local.agent_name}-kb", "_", "-")
   type  = "VECTORSEARCH"
@@ -80,13 +80,13 @@ resource "aws_opensearchserverless_collection" "main" {
   )
 
   depends_on = [
-    aws_opensearchserverless_security_policy.encryption,
-    aws_opensearchserverless_security_policy.network
+    aws_opensearchserverless_security_policy.child_event_manager_encryption,
+    aws_opensearchserverless_security_policy.child_event_manager_network
   ]
 }
 
 # OpenSearch Serverless Encryption Policy
-resource "aws_opensearchserverless_security_policy" "encryption" {
+resource "aws_opensearchserverless_security_policy" "child_event_manager_encryption" {
   count = var.enable_knowledge_base ? 1 : 0
   name  = replace("${local.agent_name}-kb-encryption", "_", "-")
   type  = "encryption"
@@ -105,7 +105,7 @@ resource "aws_opensearchserverless_security_policy" "encryption" {
 }
 
 # OpenSearch Serverless Network Policy
-resource "aws_opensearchserverless_security_policy" "network" {
+resource "aws_opensearchserverless_security_policy" "child_event_manager_network" {
   count = var.enable_knowledge_base ? 1 : 0
   name  = replace("${local.agent_name}-kb-network", "_", "-")
   type  = "network"
@@ -132,7 +132,7 @@ resource "aws_opensearchserverless_security_policy" "network" {
 }
 
 # OpenSearch Serverless Access Policy
-resource "aws_opensearchserverless_access_policy" "main" {
+resource "aws_opensearchserverless_access_policy" "child_event_manager_main" {
   count = var.enable_knowledge_base ? 1 : 0
   name  = replace("${local.agent_name}-kb-access", "_", "-")
   type  = "data"
@@ -168,7 +168,7 @@ resource "aws_opensearchserverless_access_policy" "main" {
         }
       ]
       Principal = [
-        aws_iam_role.knowledge_base[0].arn
+        aws_iam_role.child_event_manager_knowledge_base[0].arn
       ]
     }
   ])

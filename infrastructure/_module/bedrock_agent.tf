@@ -1,7 +1,7 @@
 # Bedrock Agent
-resource "aws_bedrockagent_agent" "main" {
+resource "aws_bedrockagent_agent" "child_event_manager_main" {
   agent_name              = local.agent_name
-  agent_resource_role_arn = aws_iam_role.bedrock_agent.arn
+  agent_resource_role_arn = aws_iam_role.child_event_manager_bedrock_agent.arn
   description             = var.agent_description
   foundation_model        = var.foundation_model
   instruction             = var.agent_instruction
@@ -17,9 +17,9 @@ resource "aws_bedrockagent_agent" "main" {
 }
 
 # Agent Alias
-resource "aws_bedrockagent_agent_alias" "main" {
+resource "aws_bedrockagent_agent_alias" "child_event_manager_main" {
   agent_alias_name = "${var.environment}-alias"
-  agent_id         = aws_bedrockagent_agent.main.id
+  agent_id         = aws_bedrockagent_agent.child_event_manager_main.id
   description      = "Alias for ${var.environment} environment"
 
   tags = merge(
@@ -32,11 +32,11 @@ resource "aws_bedrockagent_agent_alias" "main" {
 }
 
 # Associate Knowledge Base with Agent (if enabled)
-resource "aws_bedrockagent_agent_knowledge_base_association" "main" {
+resource "aws_bedrockagent_agent_knowledge_base_association" "child_event_manager_main" {
   count                 = var.enable_knowledge_base ? 1 : 0
-  agent_id              = aws_bedrockagent_agent.main.id
+  agent_id              = aws_bedrockagent_agent.child_event_manager_main.id
   agent_version         = "DRAFT"
   description           = "Association between agent and knowledge base"
-  knowledge_base_id     = aws_bedrockagent_knowledge_base.main[0].id
+  knowledge_base_id     = aws_bedrockagent_knowledge_base.child_event_manager_main[0].id
   knowledge_base_state  = "ENABLED"
 }
