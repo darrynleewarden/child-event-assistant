@@ -62,3 +62,9 @@ variable "allowed_origins" {
   type        = list(string)
   default     = ["*"]
 }
+
+variable "cors_allow_credentials" {
+  description = "Whether to allow credentials in CORS requests. Set to false when using wildcard origins."
+  type        = bool
+  default     = false
+}

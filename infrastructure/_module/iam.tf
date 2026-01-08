@@ -169,7 +169,11 @@ resource "aws_iam_role_policy" "child_event_manager_lambda_bedrock" {
         Action = [
           "bedrock:InvokeAgent"
         ]
-        Resource = aws_bedrockagent_agent.child_event_manager_main.agent_arn
+        Resource = [
+          aws_bedrockagent_agent.child_event_manager_main.agent_arn,
+          "${aws_bedrockagent_agent.child_event_manager_main.agent_arn}/*",
+          "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:agent-alias/${aws_bedrockagent_agent.child_event_manager_main.id}/*"
+        ]
       }
     ]
   })

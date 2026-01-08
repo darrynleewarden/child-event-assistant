@@ -5,10 +5,12 @@ resource "aws_apigatewayv2_api" "child_event_manager_main" {
   description   = "API Gateway for Child Event Manager Bedrock Agent"
 
   cors_configuration {
-    allow_origins = var.allowed_origins
-    allow_methods = ["POST", "OPTIONS"]
-    allow_headers = ["Content-Type", "Authorization"]
-    max_age       = 300
+    allow_origins     = var.allowed_origins
+    allow_methods     = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allow_headers     = ["Content-Type", "Authorization", "X-Amz-Date", "X-Api-Key", "X-Amz-Security-Token"]
+    expose_headers    = ["Content-Type", "X-Amz-Date", "X-Api-Key"]
+    allow_credentials = var.cors_allow_credentials
+    max_age           = 300
   }
 
   tags = merge(

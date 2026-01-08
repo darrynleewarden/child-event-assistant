@@ -26,7 +26,9 @@ module "bedrock_agent" {
 
   idle_session_ttl = 900  # 15 minutes for production
 
-  allowed_origins = ["https://child-event-manager.com", "https://www.child-event-manager.com"]
+  # CORS Configuration
+  allowed_origins        = ["https://child-event-manager.com", "https://www.child-event-manager.com"]
+  cors_allow_credentials = true
 
   tags = {
     Application = "ChildEventManager"

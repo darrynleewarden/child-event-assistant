@@ -26,7 +26,14 @@ module "bedrock_agent" {
 
   idle_session_ttl = 600
 
-  allowed_origins = ["http://localhost:3000", "http://localhost:3001"]
+  # CORS Configuration
+  allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001"
+  ]
+  cors_allow_credentials = true
 
   tags = {
     Application = "ChildEventManager"
