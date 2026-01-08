@@ -129,3 +129,54 @@ resource "aws_iam_role_policy" "child_event_manager_knowledge_base_bedrock" {
     ]
   })
 }
+
+# IAM Role for Lambda Function
+resource "aws_iam_role" "child_event_manager_lambda" {
+  name = "${local.agent_name}-lambda-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = merge(
+    var.tags,
+    {
+      Name        = "${local.agent_name}-lambda-role"
+      Environment = var.environment
+    }
+  )
+}
+
+# Policy for Lambda to invoke Bedrock Agent
+resource "aws_iam_role_policy" "child_event_manager_lambda_bedrock" {
+  name = "${local.agent_name}-lambda-bedrock-policy"
+  role = aws_iam_role.child_event_manager_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "bedrock:InvokeAgent"
+        ]
+        Resource = aws_bedrockagent_agent.child_event_manager_main.agent_arn
+      }
+    ]
+  })
+}
+
+# Attach AWS managed policy for Lambda basic execution
+resource "aws_iam_role_policy_attachment" "child_event_manager_lambda_basic" {
+  role       = aws_iam_role.child_event_manager_lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}

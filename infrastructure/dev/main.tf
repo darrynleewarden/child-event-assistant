@@ -26,6 +26,8 @@ module "bedrock_agent" {
 
   idle_session_ttl = 600
 
+  allowed_origins = ["http://localhost:3000", "http://localhost:3001"]
+
   tags = {
     Application = "ChildEventManager"
     Component   = "BedrockAgent"

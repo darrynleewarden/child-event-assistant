@@ -25,3 +25,6 @@ terraform.rc
 
 # Lock files (commit these in real projects)
 .terraform.lock.hcl
+
+# Lambda deployment packages
+**/*.zip

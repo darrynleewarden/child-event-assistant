@@ -42,3 +42,23 @@ output "s3_bucket_name" {
   description = "The name of the S3 bucket for knowledge base data (if enabled)"
   value       = var.enable_knowledge_base ? aws_s3_bucket.child_event_manager_knowledge_base[0].id : null
 }
+
+output "api_endpoint" {
+  description = "API Gateway endpoint URL"
+  value       = aws_apigatewayv2_api.child_event_manager_main.api_endpoint
+}
+
+output "api_invoke_url" {
+  description = "Full API invoke URL for POST /invoke endpoint"
+  value       = "${aws_apigatewayv2_api.child_event_manager_main.api_endpoint}/invoke"
+}
+
+output "lambda_function_name" {
+  description = "Lambda function name"
+  value       = aws_lambda_function.child_event_manager_bedrock_invoker.function_name
+}
+
+output "lambda_function_arn" {
+  description = "Lambda function ARN"
+  value       = aws_lambda_function.child_event_manager_bedrock_invoker.arn
+}
