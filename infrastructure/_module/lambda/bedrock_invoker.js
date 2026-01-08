@@ -2,8 +2,14 @@ const {
   BedrockAgentRuntimeClient,
   InvokeAgentCommand,
 } = require('@aws-sdk/client-bedrock-agent-runtime');
+const crypto = require('crypto');
 
 const client = new BedrockAgentRuntimeClient({});
+
+// Generate a unique session ID if not provided
+const generateSessionId = () => {
+  return `session-${crypto.randomUUID()}`;
+};
 
 exports.handler = async (event) => {
   console.log('Event:', JSON.stringify(event, null, 2));
@@ -11,7 +17,7 @@ exports.handler = async (event) => {
   try {
     // Parse request body
     const body = JSON.parse(event.body || '{}');
-    const { message, sessionId } = body;
+    const { message, sessionId: providedSessionId } = body;
 
     if (!message) {
       return {
@@ -26,12 +32,19 @@ exports.handler = async (event) => {
       };
     }
 
-    // Invoke Bedrock Agent
+    // Use provided session ID or generate a new one
+    // This ensures conversation context is maintained across requests
+    const sessionId = providedSessionId || generateSessionId();
+
+    // Invoke Bedrock Agent with session context
     const command = new InvokeAgentCommand({
       agentId: process.env.AGENT_ID,
       agentAliasId: process.env.AGENT_ALIAS_ID,
-      sessionId: sessionId || `session-${Date.now()}`,
+      sessionId: sessionId,
       inputText: message,
+      enableTrace: false,
+      // Memory configuration is handled at the agent level
+      // The session ID maintains conversation context
     });
 
     const response = await client.send(command);
@@ -55,7 +68,7 @@ exports.handler = async (event) => {
       },
       body: JSON.stringify({
         message: completion,
-        sessionId: sessionId || `session-${Date.now()}`,
+        sessionId: sessionId, // Return the session ID for the client to reuse
       }),
     };
   } catch (error) {

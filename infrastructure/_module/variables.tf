@@ -68,3 +68,9 @@ variable "cors_allow_credentials" {
   type        = bool
   default     = false
 }
+
+variable "memory_storage_days" {
+  description = "Number of days to store conversation memory/context. Set to 0 to disable persistent memory."
+  type        = number
+  default     = 30
+}

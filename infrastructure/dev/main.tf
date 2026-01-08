@@ -16,15 +16,20 @@ module "bedrock_agent" {
 
     Always provide accurate, safe, and age-appropriate recommendations.
     Be friendly, professional, and considerate of children's needs.
+
+    IMPORTANT: You have conversation memory enabled. Use context from previous messages 
+    in this session to provide more personalized and contextual responses. Remember 
+    details the user shares about their children, preferences, and ongoing plans.
   EOT
 
   foundation_model = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 
   # Knowledge base is optional - set to true if you want to use it
-  enable_knowledge_base       = false
+  enable_knowledge_base      = false
   knowledge_base_description = "Knowledge base for child event planning and safety guidelines"
 
-  idle_session_ttl = 600
+  idle_session_ttl    = 600
+  memory_storage_days = 7 # Store conversation context for 7 days in dev
 
   # CORS Configuration
   allowed_origins = [

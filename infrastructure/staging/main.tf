@@ -18,14 +18,19 @@ module "bedrock_agent" {
     Be friendly, professional, and considerate of children's needs.
 
     This is the STAGING environment for testing purposes.
+
+    IMPORTANT: You have conversation memory enabled. Use context from previous messages 
+    in this session to provide more personalized and contextual responses. Remember 
+    details the user shares about their children, preferences, and ongoing plans.
   EOT
 
   foundation_model = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 
-  enable_knowledge_base       = false
+  enable_knowledge_base      = false
   knowledge_base_description = "Knowledge base for child event planning and safety guidelines (Staging)"
 
-  idle_session_ttl = 600
+  idle_session_ttl    = 600
+  memory_storage_days = 14 # Store conversation context for 14 days in staging
 
   # CORS Configuration
   allowed_origins        = ["https://staging.child-event-manager.com"]

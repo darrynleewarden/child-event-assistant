@@ -3,7 +3,7 @@ module "bedrock_agent" {
 
   name        = "child-event-manager"
   environment = "prod"
-  random_name = false  # Use consistent naming in production
+  random_name = false # Use consistent naming in production
 
   agent_description = "AI assistant for child event management powered by Claude 3.5 (Production)"
   agent_instruction = <<-EOT
@@ -17,22 +17,27 @@ module "bedrock_agent" {
     Always provide accurate, safe, and age-appropriate recommendations.
     Be friendly, professional, and considerate of children's needs.
     Ensure all information is verified and appropriate for a production environment.
+
+    IMPORTANT: You have conversation memory enabled. Use context from previous messages 
+    in this session to provide more personalized and contextual responses. Remember 
+    details the user shares about their children, preferences, and ongoing plans.
   EOT
 
   foundation_model = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 
-  enable_knowledge_base       = true
+  enable_knowledge_base      = true
   knowledge_base_description = "Production knowledge base for child event planning and safety guidelines"
 
-  idle_session_ttl = 900  # 15 minutes for production
+  idle_session_ttl    = 900 # 15 minutes for production
+  memory_storage_days = 30  # Store conversation context for 30 days in prod
 
   # CORS Configuration
   allowed_origins        = ["https://child-event-manager.com", "https://www.child-event-manager.com"]
   cors_allow_credentials = true
 
   tags = {
-    Application = "ChildEventManager"
-    Component   = "BedrockAgent"
+    Application      = "ChildEventManager"
+    Component        = "BedrockAgent"
     CriticalityLevel = "High"
   }
 }

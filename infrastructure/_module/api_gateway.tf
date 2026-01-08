@@ -70,8 +70,8 @@ resource "aws_apigatewayv2_integration" "child_event_manager_lambda" {
   api_id           = aws_apigatewayv2_api.child_event_manager_main.id
   integration_type = "AWS_PROXY"
 
-  integration_uri    = aws_lambda_function.child_event_manager_bedrock_invoker.invoke_arn
-  integration_method = "POST"
+  integration_uri        = aws_lambda_function.child_event_manager_bedrock_invoker.invoke_arn
+  integration_method     = "POST"
   payload_format_version = "2.0"
 }
 
