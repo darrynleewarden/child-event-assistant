@@ -41,3 +41,15 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# terraform
+*.tfplan
+*.tfstate
+*.tfstate.*
+
+# lambda build artifacts
+infrastructure/_module/lambda/nodejs/
+infrastructure/_module/lambda/*.zip
+
+# test scripts
+test-*.sh
