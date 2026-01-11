@@ -28,6 +28,11 @@ resource "aws_bedrockagent_agent_alias" "child_event_manager_main" {
   agent_id         = aws_bedrockagent_agent.child_event_manager_main.id
   description      = "Alias for ${var.environment} environment"
 
+  # This will create a new version and point the alias to it
+  depends_on = [
+    aws_bedrockagent_agent_action_group.child_event_manager_database
+  ]
+
   tags = merge(
     var.tags,
     {
@@ -35,6 +40,13 @@ resource "aws_bedrockagent_agent_alias" "child_event_manager_main" {
       Environment = var.environment
     }
   )
+
+  lifecycle {
+    replace_triggered_by = [
+      aws_bedrockagent_agent.child_event_manager_main,
+      aws_bedrockagent_agent_action_group.child_event_manager_database
+    ]
+  }
 }
 
 # Associate Knowledge Base with Agent (if enabled)

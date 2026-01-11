@@ -1,0 +1,182 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Child Event Manager Database API",
+    "version": "1.0.0",
+    "description": "API for querying child and event data from the database"
+  },
+  "paths": {
+    "/get-children": {
+      "post": {
+        "summary": "Get all children or filter by criteria",
+        "description": "Retrieves children information from the database. Can optionally filter by user ID or child name.",
+        "operationId": "getChildren",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "description": "Filter by user ID"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "description": "Filter by child's first name"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of children",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "children": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-child-events": {
+      "post": {
+        "summary": "Get events for a specific child",
+        "description": "Retrieves all events associated with a specific child",
+        "operationId": "getChildEvents",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["childId"],
+                "properties": {
+                  "childId": {
+                    "type": "string",
+                    "description": "The ID of the child"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of events for the child",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-child-details": {
+      "post": {
+        "summary": "Get detailed information about a specific child",
+        "description": "Retrieves comprehensive information about a child including their events",
+        "operationId": "getChildDetails",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["childId"],
+                "properties": {
+                  "childId": {
+                    "type": "string",
+                    "description": "The ID of the child"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Detailed child information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "child": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-event-statistics": {
+      "post": {
+        "summary": "Get statistics about events",
+        "description": "Retrieves aggregate statistics about events, such as counts by type",
+        "operationId": "getEventStatistics",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "childId": {
+                    "type": "string",
+                    "description": "Optional: Filter statistics by child ID"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "statistics": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

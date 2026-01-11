@@ -107,3 +107,18 @@ output "vpc_id" {
   description = "VPC ID (if database is enabled)"
   value       = var.enable_database ? aws_vpc.child_event_manager_main[0].id : null
 }
+
+output "db_lambda_function_name" {
+  description = "Database Lambda function name"
+  value       = var.enable_database ? aws_lambda_function.child_event_manager_database_handler[0].function_name : null
+}
+
+output "db_lambda_function_arn" {
+  description = "Database Lambda function ARN"
+  value       = var.enable_database ? aws_lambda_function.child_event_manager_database_handler[0].arn : null
+}
+
+output "bedrock_action_group_id" {
+  description = "Bedrock Agent Action Group ID for database actions"
+  value       = var.enable_database ? aws_bedrockagent_agent_action_group.child_event_manager_database[0].id : null
+}

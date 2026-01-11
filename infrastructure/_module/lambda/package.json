@@ -1,0 +1,9 @@
+{
+  "name": "database-handler-layer",
+  "version": "1.0.0",
+  "description": "Lambda layer dependencies for database handler",
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.700.0",
+    "pg": "^8.13.1"
+  }
+}
