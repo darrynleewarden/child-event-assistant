@@ -6,6 +6,67 @@
     "description": "API for querying and managing child and event data in the database"
   },
   "paths": {
+    "/get-users": {
+      "post": {
+        "summary": "Get all users or filter by criteria",
+        "description": "Retrieves user information from the database. Use this to find valid user IDs before creating children. Can optionally filter by email or name.",
+        "operationId": "getUsers",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "Filter by exact email address"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Filter by user's name (partial match)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/get-children": {
       "post": {
         "summary": "Get all children or filter by criteria",
@@ -64,7 +125,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["childId"],
+                "required": [
+                  "childId"
+                ],
                 "properties": {
                   "childId": {
                     "type": "string",
@@ -108,7 +171,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["childId"],
+                "required": [
+                  "childId"
+                ],
                 "properties": {
                   "childId": {
                     "type": "string",
@@ -189,7 +254,11 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["firstName", "dateOfBirth", "userId"],
+                "required": [
+                  "firstName",
+                  "dateOfBirth",
+                  "userId"
+                ],
                 "properties": {
                   "firstName": {
                     "type": "string",
@@ -261,7 +330,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["childId"],
+                "required": [
+                  "childId"
+                ],
                 "properties": {
                   "childId": {
                     "type": "string",
@@ -333,7 +404,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["childId"],
+                "required": [
+                  "childId"
+                ],
                 "properties": {
                   "childId": {
                     "type": "string",
@@ -377,7 +450,11 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["childId", "name", "eventType"],
+                "required": [
+                  "childId",
+                  "name",
+                  "eventType"
+                ],
                 "properties": {
                   "childId": {
                     "type": "string",
@@ -429,7 +506,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["eventId"],
+                "required": [
+                  "eventId"
+                ],
                 "properties": {
                   "eventId": {
                     "type": "string",
@@ -481,7 +560,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["eventId"],
+                "required": [
+                  "eventId"
+                ],
                 "properties": {
                   "eventId": {
                     "type": "string",

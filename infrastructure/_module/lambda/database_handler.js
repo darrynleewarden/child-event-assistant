@@ -52,6 +52,39 @@ async function getDbPool() {
   return dbPool;
 }
 
+// Handler for getting users
+async function getUsers(parameters) {
+  const pool = await getDbPool();
+
+  let query = `
+    SELECT
+      id, name, email, "createdAt", "updatedAt"
+    FROM "User"
+    WHERE 1=1
+  `;
+
+  const queryParams = [];
+
+  if (parameters.email) {
+    queryParams.push(parameters.email);
+    query += ` AND email = $${queryParams.length}`;
+  }
+
+  if (parameters.name) {
+    queryParams.push(`%${parameters.name}%`);
+    query += ` AND name ILIKE $${queryParams.length}`;
+  }
+
+  query += ' ORDER BY name';
+
+  const result = await pool.query(query, queryParams);
+
+  return {
+    users: result.rows,
+    count: result.rows.length
+  };
+}
+
 // Handler for getting children
 async function getChildren(parameters) {
   const pool = await getDbPool();
@@ -219,6 +252,12 @@ async function createChild(parameters) {
 
   if (!parameters.firstName || !parameters.dateOfBirth || !parameters.userId) {
     throw new Error("firstName, dateOfBirth, and userId are required");
+  }
+
+  // Verify user exists before creating child
+  const userCheck = await pool.query('SELECT id FROM "User" WHERE id = $1', [parameters.userId]);
+  if (userCheck.rows.length === 0) {
+    throw new Error(`User with ID "${parameters.userId}" not found. Please provide a valid userId.`);
   }
 
   const childId = createId();
@@ -507,6 +546,9 @@ exports.handler = async (event) => {
 
     // Route to appropriate handler based on API path
     switch (apiPath) {
+      case "/get-users":
+        result = await getUsers(parameters);
+        break;
       case "/get-children":
         result = await getChildren(parameters);
         break;
