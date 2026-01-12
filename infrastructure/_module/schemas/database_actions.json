@@ -246,7 +246,7 @@
     "/create-child": {
       "post": {
         "summary": "Create a new child record",
-        "description": "Adds a new child to the database with the provided information",
+        "description": "Adds a new child to the database. IMPORTANT: First call without 'confirmed' to get a preview, then call again with confirmed=true after user confirms.",
         "operationId": "createChild",
         "requestBody": {
           "required": true,
@@ -260,6 +260,10 @@
                   "userId"
                 ],
                 "properties": {
+                  "confirmed": {
+                    "type": "boolean",
+                    "description": "Set to true only after the user explicitly confirms the action. If not set or false, returns a preview requiring confirmation."
+                  },
                   "firstName": {
                     "type": "string",
                     "description": "Child's first name"
@@ -322,7 +326,7 @@
     "/update-child": {
       "post": {
         "summary": "Update child information",
-        "description": "Updates an existing child's information in the database",
+        "description": "Updates an existing child's information. IMPORTANT: First call without 'confirmed' to get a preview, then call again with confirmed=true after user confirms.",
         "operationId": "updateChild",
         "requestBody": {
           "required": true,
@@ -334,6 +338,10 @@
                   "childId"
                 ],
                 "properties": {
+                  "confirmed": {
+                    "type": "boolean",
+                    "description": "Set to true only after the user explicitly confirms the action. If not set or false, returns a preview requiring confirmation."
+                  },
                   "childId": {
                     "type": "string",
                     "description": "ID of the child to update"
@@ -396,7 +404,7 @@
     "/delete-child": {
       "post": {
         "summary": "Delete a child record",
-        "description": "Removes a child and all associated events from the database",
+        "description": "Removes a child and all associated events permanently. IMPORTANT: First call without 'confirmed' to get a preview, then call again with confirmed=true after user confirms. This is a destructive action!",
         "operationId": "deleteChild",
         "requestBody": {
           "required": true,
@@ -408,6 +416,10 @@
                   "childId"
                 ],
                 "properties": {
+                  "confirmed": {
+                    "type": "boolean",
+                    "description": "Set to true only after the user explicitly confirms the deletion. If not set or false, returns a preview requiring confirmation."
+                  },
                   "childId": {
                     "type": "string",
                     "description": "ID of the child to delete"
@@ -442,7 +454,7 @@
     "/create-event": {
       "post": {
         "summary": "Create a new event for a child",
-        "description": "Adds a new event to a child's timeline",
+        "description": "Adds a new event to a child's timeline. IMPORTANT: First call without 'confirmed' to get a preview, then call again with confirmed=true after user confirms.",
         "operationId": "createEvent",
         "requestBody": {
           "required": true,
@@ -456,6 +468,10 @@
                   "eventType"
                 ],
                 "properties": {
+                  "confirmed": {
+                    "type": "boolean",
+                    "description": "Set to true only after the user explicitly confirms the action. If not set or false, returns a preview requiring confirmation."
+                  },
                   "childId": {
                     "type": "string",
                     "description": "ID of the child this event is for"
@@ -498,7 +514,7 @@
     "/update-event": {
       "post": {
         "summary": "Update an event",
-        "description": "Updates an existing event's information",
+        "description": "Updates an existing event's information. IMPORTANT: First call without 'confirmed' to get a preview, then call again with confirmed=true after user confirms.",
         "operationId": "updateEvent",
         "requestBody": {
           "required": true,
@@ -510,6 +526,10 @@
                   "eventId"
                 ],
                 "properties": {
+                  "confirmed": {
+                    "type": "boolean",
+                    "description": "Set to true only after the user explicitly confirms the action. If not set or false, returns a preview requiring confirmation."
+                  },
                   "eventId": {
                     "type": "string",
                     "description": "ID of the event to update"
@@ -552,7 +572,7 @@
     "/delete-event": {
       "post": {
         "summary": "Delete an event",
-        "description": "Removes an event from the database",
+        "description": "Removes an event permanently. IMPORTANT: First call without 'confirmed' to get a preview, then call again with confirmed=true after user confirms.",
         "operationId": "deleteEvent",
         "requestBody": {
           "required": true,
@@ -564,6 +584,10 @@
                   "eventId"
                 ],
                 "properties": {
+                  "confirmed": {
+                    "type": "boolean",
+                    "description": "Set to true only after the user explicitly confirms the deletion. If not set or false, returns a preview requiring confirmation."
+                  },
                   "eventId": {
                     "type": "string",
                     "description": "ID of the event to delete"

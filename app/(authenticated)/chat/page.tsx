@@ -29,64 +29,56 @@ export default function ChatPage() {
   const [error, setError] = useState<string>()
   const [autoSpeak, setAutoSpeak] = useState(false)
 
+  const addBotMessage = (content: string) => {
+    const botMessage: Message = {
+      id: `bot-${Date.now()}`,
+      content,
+      variant: "bot",
+      timestamp: new Date(),
+      isNew: true,
+    }
+
+    setMessages((prev) => [...prev, botMessage])
+
+    setTimeout(() => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === botMessage.id ? { ...msg, isNew: false } : msg
+        )
+      )
+    }, 100)
+
+    return botMessage
+  }
+
   const handleSend = async (message: string) => {
     if (!message.trim() || isLoading) return
 
     // Add user message
-    const userMessage: Message = {
+    setMessages((prev) => [...prev, {
       id: `user-${Date.now()}`,
       content: message,
       variant: "user",
       timestamp: new Date(),
-    }
+    }])
 
-    setMessages((prev) => [...prev, userMessage])
     setIsLoading(true)
     setError(undefined)
 
     try {
-      // Call Bedrock API
       const response = await invokeBedrockAgent(message, sessionId)
 
-      // Update session ID if provided
       if (response.sessionId && !sessionId) {
         setSessionId(response.sessionId)
       }
 
-      // Add bot response
-      const botMessage: Message = {
-        id: `bot-${Date.now()}`,
-        content: response.message,
-        variant: "bot",
-        timestamp: new Date(),
-        isNew: true,
-      }
-
-      setMessages((prev) => [...prev, botMessage])
-
-      // Mark message as not new after a short delay
-      setTimeout(() => {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === botMessage.id ? { ...msg, isNew: false } : msg
-          )
-        )
-      }, 100)
+      addBotMessage(response.message)
     } catch (err) {
       console.error("Error sending message:", err)
       const errorMessage =
         err instanceof Error ? err.message : "Failed to send message"
       setError(errorMessage)
-
-      // Add error message to chat
-      const errorBotMessage: Message = {
-        id: `error-${Date.now()}`,
-        content: `Sorry, I encountered an error: ${errorMessage}. Please try again.`,
-        variant: "bot",
-        timestamp: new Date(),
-      }
-
-      setMessages((prev) => [...prev, errorBotMessage])
+      addBotMessage(`Sorry, I encountered an error: ${errorMessage}. Please try again.`)
     } finally {
       setIsLoading(false)
     }
@@ -101,8 +93,8 @@ export default function ChatPage() {
           <button
             onClick={() => setAutoSpeak(!autoSpeak)}
             className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition-colors ${autoSpeak
-                ? "bg-purple-100 text-purple-700"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              ? "bg-purple-100 text-purple-700"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             aria-label={autoSpeak ? "Disable auto-speak" : "Enable auto-speak"}
           >
@@ -167,7 +159,10 @@ export default function ChatPage() {
       {/* Fixed Input at Bottom */}
       <div className="border-t border-gray-200 bg-white">
         <div className="mx-auto w-full max-w-4xl px-4 py-4">
-          <ChatInput onSend={handleSend} placeholder="Type your message..." />
+          <ChatInput
+            onSend={handleSend}
+            placeholder="Type your message..."
+          />
         </div>
       </div>
     </div>

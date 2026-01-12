@@ -255,9 +255,28 @@ async function createChild(parameters) {
   }
 
   // Verify user exists before creating child
-  const userCheck = await pool.query('SELECT id FROM "User" WHERE id = $1', [parameters.userId]);
+  const userCheck = await pool.query('SELECT id, name, email FROM "User" WHERE id = $1', [parameters.userId]);
   if (userCheck.rows.length === 0) {
     throw new Error(`User with ID "${parameters.userId}" not found. Please provide a valid userId.`);
+  }
+  const user = userCheck.rows[0];
+
+  // Always require confirmation for DB-modifying actions
+  // If confirmed is not explicitly true, return a preview
+  if (parameters.confirmed !== true && parameters.confirmed !== "true") {
+    return {
+      requiresConfirmation: true,
+      action: "create-child",
+      message: `⚠️ CONFIRMATION REQUIRED: Create child "${parameters.firstName}${parameters.lastName ? ' ' + parameters.lastName : ''}" (DOB: ${parameters.dateOfBirth}) for user "${user.name || user.email}"? Please ask the user to confirm before proceeding.`,
+      preview: {
+        firstName: parameters.firstName,
+        lastName: parameters.lastName || null,
+        dateOfBirth: parameters.dateOfBirth,
+        gender: parameters.gender || null,
+        userId: parameters.userId,
+        userName: user.name || user.email
+      }
+    };
   }
 
   const childId = createId();
@@ -302,42 +321,71 @@ async function updateChild(parameters) {
     throw new Error("childId is required");
   }
 
+  // Fetch the current child data for preview
+  const currentChildResult = await pool.query('SELECT * FROM "child-details" WHERE id = $1', [parameters.childId]);
+  if (currentChildResult.rows.length === 0) {
+    throw new Error("Child not found");
+  }
+  const currentChild = currentChildResult.rows[0];
+
   // Build dynamic update query
   const updates = [];
   const values = [];
   let paramIndex = 1;
+  const changes = {};
 
   if (parameters.firstName !== undefined) {
     updates.push(`"firstName" = $${paramIndex++}`);
     values.push(parameters.firstName);
+    changes.firstName = { from: currentChild.firstName, to: parameters.firstName };
   }
   if (parameters.lastName !== undefined) {
     updates.push(`"lastName" = $${paramIndex++}`);
     values.push(parameters.lastName);
+    changes.lastName = { from: currentChild.lastName, to: parameters.lastName };
   }
   if (parameters.dateOfBirth !== undefined) {
     updates.push(`"dateOfBirth" = $${paramIndex++}`);
     values.push(parameters.dateOfBirth);
+    changes.dateOfBirth = { from: currentChild.dateOfBirth, to: parameters.dateOfBirth };
   }
   if (parameters.gender !== undefined) {
     updates.push(`gender = $${paramIndex++}`);
     values.push(parameters.gender);
+    changes.gender = { from: currentChild.gender, to: parameters.gender };
   }
   if (parameters.allergies !== undefined) {
     updates.push(`allergies = $${paramIndex++}`);
     values.push(parameters.allergies);
+    changes.allergies = { from: currentChild.allergies, to: parameters.allergies };
   }
   if (parameters.medicalInfo !== undefined) {
     updates.push(`"medicalInfo" = $${paramIndex++}`);
     values.push(parameters.medicalInfo);
+    changes.medicalInfo = { from: currentChild.medicalInfo, to: parameters.medicalInfo };
   }
   if (parameters.notes !== undefined) {
     updates.push(`notes = $${paramIndex++}`);
     values.push(parameters.notes);
+    changes.notes = { from: currentChild.notes, to: parameters.notes };
   }
 
   if (updates.length === 0) {
     throw new Error("No fields to update");
+  }
+
+  // Always require confirmation for DB-modifying actions
+  if (parameters.confirmed !== true && parameters.confirmed !== "true") {
+    return {
+      requiresConfirmation: true,
+      action: "update-child",
+      message: `⚠️ CONFIRMATION REQUIRED: Update child "${currentChild.firstName} ${currentChild.lastName || ''}"? Changes: ${Object.keys(changes).map(k => `${k}: "${changes[k].from}" → "${changes[k].to}"`).join(", ")}. Please ask the user to confirm before proceeding.`,
+      preview: {
+        childId: parameters.childId,
+        currentData: currentChild,
+        changes: changes
+      }
+    };
   }
 
   updates.push(`"updatedAt" = $${paramIndex++}`);
@@ -372,19 +420,47 @@ async function deleteChild(parameters) {
     throw new Error("childId is required");
   }
 
+  // Fetch the child data and associated events for preview
+  const childResult = await pool.query('SELECT * FROM "child-details" WHERE id = $1', [parameters.childId]);
+  if (childResult.rows.length === 0) {
+    throw new Error("Child not found");
+  }
+  const child = childResult.rows[0];
+
+  const eventsResult = await pool.query('SELECT COUNT(*) as count FROM "child-events" WHERE "childId" = $1', [parameters.childId]);
+  const eventCount = parseInt(eventsResult.rows[0].count, 10);
+
+  // Always require confirmation for DB-modifying actions (especially delete!)
+  if (parameters.confirmed !== true && parameters.confirmed !== "true") {
+    const warningMsg = eventCount > 0
+      ? `⚠️ WARNING: This will also DELETE ${eventCount} associated event(s)!`
+      : "";
+    return {
+      requiresConfirmation: true,
+      action: "delete-child",
+      message: `🚨 CONFIRMATION REQUIRED: Delete child "${child.firstName} ${child.lastName || ''}" permanently? ${warningMsg} Please ask the user to confirm before proceeding.`,
+      preview: {
+        childId: parameters.childId,
+        child: { firstName: child.firstName, lastName: child.lastName, dateOfBirth: child.dateOfBirth },
+        eventCount: eventCount
+      },
+      warning: warningMsg || null
+    };
+  }
+
   // First, delete all associated events
   await pool.query('DELETE FROM "child-events" WHERE "childId" = $1', [parameters.childId]);
 
   // Then delete the child
-  const result = await pool.query('DELETE FROM "child-details" WHERE id = $1 RETURNING "firstName", "lastName"', [parameters.childId]);
+  const deleteResult = await pool.query('DELETE FROM "child-details" WHERE id = $1 RETURNING "firstName", "lastName"', [parameters.childId]);
 
-  if (result.rows.length === 0) {
+  if (deleteResult.rows.length === 0) {
     throw new Error("Child not found");
   }
 
-  const child = result.rows[0];
+  const deletedChild = deleteResult.rows[0];
   return {
-    message: `Child ${child.firstName} ${child.lastName || ''} and all associated events deleted successfully`,
+    message: `Child ${deletedChild.firstName} ${deletedChild.lastName || ''} and all associated events deleted successfully`,
     deletedChildId: parameters.childId
   };
 }
@@ -397,10 +473,26 @@ async function createEvent(parameters) {
     throw new Error("childId, name, and eventType are required");
   }
 
-  // Verify child exists
-  const childCheck = await pool.query('SELECT id FROM "child-details" WHERE id = $1', [parameters.childId]);
+  // Verify child exists and get child name for preview
+  const childCheck = await pool.query('SELECT id, "firstName", "lastName" FROM "child-details" WHERE id = $1', [parameters.childId]);
   if (childCheck.rows.length === 0) {
     throw new Error("Child not found");
+  }
+  const child = childCheck.rows[0];
+
+  // Always require confirmation for DB-modifying actions
+  if (parameters.confirmed !== true && parameters.confirmed !== "true") {
+    return {
+      requiresConfirmation: true,
+      action: "create-event",
+      message: `⚠️ CONFIRMATION REQUIRED: Log event "${parameters.name}" (type: ${parameters.eventType}) for child "${child.firstName} ${child.lastName || ''}"? Please ask the user to confirm before proceeding.`,
+      preview: {
+        name: parameters.name,
+        eventType: parameters.eventType,
+        childId: parameters.childId,
+        childName: `${child.firstName} ${child.lastName || ''}`.trim()
+      }
+    };
   }
 
   const eventId = createId();
@@ -439,22 +531,46 @@ async function updateEvent(parameters) {
     throw new Error("eventId is required");
   }
 
+  // Fetch the current event data for preview
+  const currentEventResult = await pool.query('SELECT * FROM "child-events" WHERE id = $1', [parameters.eventId]);
+  if (currentEventResult.rows.length === 0) {
+    throw new Error("Event not found");
+  }
+  const currentEvent = currentEventResult.rows[0];
+
   // Build dynamic update query
   const updates = [];
   const values = [];
   let paramIndex = 1;
+  const changes = {};
 
   if (parameters.name !== undefined) {
     updates.push(`name = $${paramIndex++}`);
     values.push(parameters.name);
+    changes.name = { from: currentEvent.name, to: parameters.name };
   }
   if (parameters.eventType !== undefined) {
     updates.push(`"eventType" = $${paramIndex++}`);
     values.push(parameters.eventType);
+    changes.eventType = { from: currentEvent.eventType, to: parameters.eventType };
   }
 
   if (updates.length === 0) {
     throw new Error("No fields to update");
+  }
+
+  // Always require confirmation for DB-modifying actions
+  if (parameters.confirmed !== true && parameters.confirmed !== "true") {
+    return {
+      requiresConfirmation: true,
+      action: "update-event",
+      message: `⚠️ CONFIRMATION REQUIRED: Update event "${currentEvent.name}"? Changes: ${Object.keys(changes).map(k => `${k}: "${changes[k].from}" → "${changes[k].to}"`).join(", ")}. Please ask the user to confirm before proceeding.`,
+      preview: {
+        eventId: parameters.eventId,
+        currentData: currentEvent,
+        changes: changes
+      }
+    };
   }
 
   updates.push(`"updatedAt" = $${paramIndex++}`);
@@ -489,15 +605,35 @@ async function deleteEvent(parameters) {
     throw new Error("eventId is required");
   }
 
-  const result = await pool.query('DELETE FROM "child-events" WHERE id = $1 RETURNING name', [parameters.eventId]);
+  // Fetch the event data for preview
+  const eventResult = await pool.query('SELECT * FROM "child-events" WHERE id = $1', [parameters.eventId]);
+  if (eventResult.rows.length === 0) {
+    throw new Error("Event not found");
+  }
+  const eventData = eventResult.rows[0];
 
-  if (result.rows.length === 0) {
+  // Always require confirmation for DB-modifying actions
+  if (parameters.confirmed !== true && parameters.confirmed !== "true") {
+    return {
+      requiresConfirmation: true,
+      action: "delete-event",
+      message: `⚠️ CONFIRMATION REQUIRED: Delete event "${eventData.name}" (type: ${eventData.eventType}) permanently? Please ask the user to confirm before proceeding.`,
+      preview: {
+        eventId: parameters.eventId,
+        event: { name: eventData.name, eventType: eventData.eventType }
+      }
+    };
+  }
+
+  const deleteResult = await pool.query('DELETE FROM "child-events" WHERE id = $1 RETURNING name', [parameters.eventId]);
+
+  if (deleteResult.rows.length === 0) {
     throw new Error("Event not found");
   }
 
-  const event = result.rows[0];
+  const deletedEvent = deleteResult.rows[0];
   return {
-    message: `Event "${event.name}" deleted successfully`,
+    message: `Event "${deletedEvent.name}" deleted successfully`,
     deletedEventId: parameters.eventId
   };
 }
