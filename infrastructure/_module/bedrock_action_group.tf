@@ -271,7 +271,7 @@ resource "aws_lambda_permission" "child_event_manager_bedrock_agent_invoke" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.child_event_manager_database_handler[0].function_name
   principal     = "bedrock.amazonaws.com"
-  source_arn    = aws_bedrockagent_agent.child_event_manager_main.agent_arn
+  source_arn    = "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:agent/*"
 }
 
 # Bedrock Agent Action Group

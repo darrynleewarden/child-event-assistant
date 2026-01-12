@@ -35,8 +35,16 @@ export async function invokeBedrockAgent(
   })
 
   if (!response.ok) {
-    const errorData = (await response.json()) as BedrockError
-    throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+    let errorMessage = `HTTP error! status: ${response.status}`
+    try {
+      const errorData = (await response.json()) as BedrockError
+      if (errorData.error) {
+        errorMessage = errorData.error
+      }
+    } catch {
+      // Response body wasn't valid JSON, use default error message
+    }
+    throw new Error(errorMessage)
   }
 
   const data = (await response.json()) as BedrockResponse

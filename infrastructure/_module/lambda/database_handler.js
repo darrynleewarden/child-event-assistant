@@ -1,5 +1,6 @@
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
 const { Pool } = require("pg");
+const { createId } = require("@paralleldrive/cuid2");
 
 // Cache the database connection and credentials
 let dbPool = null;
@@ -212,6 +213,256 @@ async function getEventStatistics(parameters) {
   };
 }
 
+// Handler for creating a new child
+async function createChild(parameters) {
+  const pool = await getDbPool();
+
+  if (!parameters.firstName || !parameters.dateOfBirth || !parameters.userId) {
+    throw new Error("firstName, dateOfBirth, and userId are required");
+  }
+
+  const childId = createId();
+  const now = new Date().toISOString();
+
+  const query = `
+    INSERT INTO "child-details" (
+      id, "firstName", "lastName", "dateOfBirth",
+      gender, allergies, "medicalInfo", notes,
+      "userId", "createdAt", "updatedAt"
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    RETURNING *
+  `;
+
+  const values = [
+    childId,
+    parameters.firstName,
+    parameters.lastName || null,
+    parameters.dateOfBirth,
+    parameters.gender || null,
+    parameters.allergies || null,
+    parameters.medicalInfo || null,
+    parameters.notes || null,
+    parameters.userId,
+    now,
+    now
+  ];
+
+  const result = await pool.query(query, values);
+
+  return {
+    child: result.rows[0],
+    message: `Child ${parameters.firstName} created successfully`
+  };
+}
+
+// Handler for updating a child
+async function updateChild(parameters) {
+  const pool = await getDbPool();
+
+  if (!parameters.childId) {
+    throw new Error("childId is required");
+  }
+
+  // Build dynamic update query
+  const updates = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (parameters.firstName !== undefined) {
+    updates.push(`"firstName" = $${paramIndex++}`);
+    values.push(parameters.firstName);
+  }
+  if (parameters.lastName !== undefined) {
+    updates.push(`"lastName" = $${paramIndex++}`);
+    values.push(parameters.lastName);
+  }
+  if (parameters.dateOfBirth !== undefined) {
+    updates.push(`"dateOfBirth" = $${paramIndex++}`);
+    values.push(parameters.dateOfBirth);
+  }
+  if (parameters.gender !== undefined) {
+    updates.push(`gender = $${paramIndex++}`);
+    values.push(parameters.gender);
+  }
+  if (parameters.allergies !== undefined) {
+    updates.push(`allergies = $${paramIndex++}`);
+    values.push(parameters.allergies);
+  }
+  if (parameters.medicalInfo !== undefined) {
+    updates.push(`"medicalInfo" = $${paramIndex++}`);
+    values.push(parameters.medicalInfo);
+  }
+  if (parameters.notes !== undefined) {
+    updates.push(`notes = $${paramIndex++}`);
+    values.push(parameters.notes);
+  }
+
+  if (updates.length === 0) {
+    throw new Error("No fields to update");
+  }
+
+  updates.push(`"updatedAt" = $${paramIndex++}`);
+  values.push(new Date().toISOString());
+
+  values.push(parameters.childId);
+
+  const query = `
+    UPDATE "child-details"
+    SET ${updates.join(", ")}
+    WHERE id = $${paramIndex}
+    RETURNING *
+  `;
+
+  const result = await pool.query(query, values);
+
+  if (result.rows.length === 0) {
+    throw new Error("Child not found");
+  }
+
+  return {
+    child: result.rows[0],
+    message: "Child updated successfully"
+  };
+}
+
+// Handler for deleting a child
+async function deleteChild(parameters) {
+  const pool = await getDbPool();
+
+  if (!parameters.childId) {
+    throw new Error("childId is required");
+  }
+
+  // First, delete all associated events
+  await pool.query('DELETE FROM "child-events" WHERE "childId" = $1', [parameters.childId]);
+
+  // Then delete the child
+  const result = await pool.query('DELETE FROM "child-details" WHERE id = $1 RETURNING "firstName", "lastName"', [parameters.childId]);
+
+  if (result.rows.length === 0) {
+    throw new Error("Child not found");
+  }
+
+  const child = result.rows[0];
+  return {
+    message: `Child ${child.firstName} ${child.lastName || ''} and all associated events deleted successfully`,
+    deletedChildId: parameters.childId
+  };
+}
+
+// Handler for creating a new event
+async function createEvent(parameters) {
+  const pool = await getDbPool();
+
+  if (!parameters.childId || !parameters.name || !parameters.eventType) {
+    throw new Error("childId, name, and eventType are required");
+  }
+
+  // Verify child exists
+  const childCheck = await pool.query('SELECT id FROM "child-details" WHERE id = $1', [parameters.childId]);
+  if (childCheck.rows.length === 0) {
+    throw new Error("Child not found");
+  }
+
+  const eventId = createId();
+  const now = new Date().toISOString();
+
+  const query = `
+    INSERT INTO "child-events" (
+      id, name, "eventType", "childId",
+      "createdAt", "updatedAt"
+    ) VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING *
+  `;
+
+  const values = [
+    eventId,
+    parameters.name,
+    parameters.eventType,
+    parameters.childId,
+    now,
+    now
+  ];
+
+  const result = await pool.query(query, values);
+
+  return {
+    event: result.rows[0],
+    message: `Event "${parameters.name}" created successfully`
+  };
+}
+
+// Handler for updating an event
+async function updateEvent(parameters) {
+  const pool = await getDbPool();
+
+  if (!parameters.eventId) {
+    throw new Error("eventId is required");
+  }
+
+  // Build dynamic update query
+  const updates = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (parameters.name !== undefined) {
+    updates.push(`name = $${paramIndex++}`);
+    values.push(parameters.name);
+  }
+  if (parameters.eventType !== undefined) {
+    updates.push(`"eventType" = $${paramIndex++}`);
+    values.push(parameters.eventType);
+  }
+
+  if (updates.length === 0) {
+    throw new Error("No fields to update");
+  }
+
+  updates.push(`"updatedAt" = $${paramIndex++}`);
+  values.push(new Date().toISOString());
+
+  values.push(parameters.eventId);
+
+  const query = `
+    UPDATE "child-events"
+    SET ${updates.join(", ")}
+    WHERE id = $${paramIndex}
+    RETURNING *
+  `;
+
+  const result = await pool.query(query, values);
+
+  if (result.rows.length === 0) {
+    throw new Error("Event not found");
+  }
+
+  return {
+    event: result.rows[0],
+    message: "Event updated successfully"
+  };
+}
+
+// Handler for deleting an event
+async function deleteEvent(parameters) {
+  const pool = await getDbPool();
+
+  if (!parameters.eventId) {
+    throw new Error("eventId is required");
+  }
+
+  const result = await pool.query('DELETE FROM "child-events" WHERE id = $1 RETURNING name', [parameters.eventId]);
+
+  if (result.rows.length === 0) {
+    throw new Error("Event not found");
+  }
+
+  const event = result.rows[0];
+  return {
+    message: `Event "${event.name}" deleted successfully`,
+    deletedEventId: parameters.eventId
+  };
+}
+
 // Main Lambda handler
 exports.handler = async (event) => {
   console.log("Received event:", JSON.stringify(event, null, 2));
@@ -222,10 +473,32 @@ exports.handler = async (event) => {
     const apiPath = event.apiPath;
     const httpMethod = event.httpMethod;
 
-    // Parse request body if present
+    // Parse parameters from Bedrock Agent event
     let parameters = {};
-    if (event.requestBody && event.requestBody.content && event.requestBody.content["application/json"]) {
-      parameters = JSON.parse(event.requestBody.content["application/json"].body);
+
+    // Method 1: Parameters come as an array of {name, value} objects
+    if (event.parameters && Array.isArray(event.parameters)) {
+      for (const param of event.parameters) {
+        parameters[param.name] = param.value;
+      }
+    }
+
+    // Method 2: Parameters in requestBody
+    if (event.requestBody?.content?.["application/json"]) {
+      const bodyContent = event.requestBody.content["application/json"];
+      // Body can be a string to parse, or properties array
+      if (bodyContent.body && typeof bodyContent.body === "string") {
+        try {
+          const parsed = JSON.parse(bodyContent.body);
+          parameters = { ...parameters, ...parsed };
+        } catch (e) {
+          console.warn("Failed to parse request body:", e.message);
+        }
+      } else if (bodyContent.properties && Array.isArray(bodyContent.properties)) {
+        for (const prop of bodyContent.properties) {
+          parameters[prop.name] = prop.value;
+        }
+      }
     }
 
     console.log("Action:", apiPath, "Parameters:", parameters);
@@ -245,6 +518,24 @@ exports.handler = async (event) => {
         break;
       case "/get-event-statistics":
         result = await getEventStatistics(parameters);
+        break;
+      case "/create-child":
+        result = await createChild(parameters);
+        break;
+      case "/update-child":
+        result = await updateChild(parameters);
+        break;
+      case "/delete-child":
+        result = await deleteChild(parameters);
+        break;
+      case "/create-event":
+        result = await createEvent(parameters);
+        break;
+      case "/update-event":
+        result = await updateEvent(parameters);
+        break;
+      case "/delete-event":
+        result = await deleteEvent(parameters);
         break;
       default:
         throw new Error(`Unknown API path: ${apiPath}`);

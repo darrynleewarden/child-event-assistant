@@ -2,8 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Child Event Manager Database API",
-    "version": "1.0.0",
-    "description": "API for querying child and event data from the database"
+    "version": "2.0.0",
+    "description": "API for querying and managing child and event data in the database"
   },
   "paths": {
     "/get-children": {
@@ -169,6 +169,342 @@
                   "properties": {
                     "statistics": {
                       "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/create-child": {
+      "post": {
+        "summary": "Create a new child record",
+        "description": "Adds a new child to the database with the provided information",
+        "operationId": "createChild",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["firstName", "dateOfBirth", "userId"],
+                "properties": {
+                  "firstName": {
+                    "type": "string",
+                    "description": "Child's first name"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "description": "Child's last name"
+                  },
+                  "dateOfBirth": {
+                    "type": "string",
+                    "description": "Date of birth in YYYY-MM-DD format"
+                  },
+                  "gender": {
+                    "type": "string",
+                    "description": "Child's gender"
+                  },
+                  "allergies": {
+                    "type": "string",
+                    "description": "Any allergies"
+                  },
+                  "medicalInfo": {
+                    "type": "string",
+                    "description": "Medical information"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Additional notes"
+                  },
+                  "userId": {
+                    "type": "string",
+                    "description": "ID of the user who owns this child record"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Child created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "child": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/update-child": {
+      "post": {
+        "summary": "Update child information",
+        "description": "Updates an existing child's information in the database",
+        "operationId": "updateChild",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["childId"],
+                "properties": {
+                  "childId": {
+                    "type": "string",
+                    "description": "ID of the child to update"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "description": "Child's first name"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "description": "Child's last name"
+                  },
+                  "dateOfBirth": {
+                    "type": "string",
+                    "description": "Date of birth in YYYY-MM-DD format"
+                  },
+                  "gender": {
+                    "type": "string",
+                    "description": "Child's gender"
+                  },
+                  "allergies": {
+                    "type": "string",
+                    "description": "Any allergies"
+                  },
+                  "medicalInfo": {
+                    "type": "string",
+                    "description": "Medical information"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Additional notes"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Child updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "child": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delete-child": {
+      "post": {
+        "summary": "Delete a child record",
+        "description": "Removes a child and all associated events from the database",
+        "operationId": "deleteChild",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["childId"],
+                "properties": {
+                  "childId": {
+                    "type": "string",
+                    "description": "ID of the child to delete"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Child deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "deletedChildId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/create-event": {
+      "post": {
+        "summary": "Create a new event for a child",
+        "description": "Adds a new event to a child's timeline",
+        "operationId": "createEvent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["childId", "name", "eventType"],
+                "properties": {
+                  "childId": {
+                    "type": "string",
+                    "description": "ID of the child this event is for"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the event"
+                  },
+                  "eventType": {
+                    "type": "string",
+                    "description": "Type of event (e.g., Medical, Education, Sports, Arts, Social, Celebration)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "event": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/update-event": {
+      "post": {
+        "summary": "Update an event",
+        "description": "Updates an existing event's information",
+        "operationId": "updateEvent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["eventId"],
+                "properties": {
+                  "eventId": {
+                    "type": "string",
+                    "description": "ID of the event to update"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the event"
+                  },
+                  "eventType": {
+                    "type": "string",
+                    "description": "Type of event"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "event": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delete-event": {
+      "post": {
+        "summary": "Delete an event",
+        "description": "Removes an event from the database",
+        "operationId": "deleteEvent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["eventId"],
+                "properties": {
+                  "eventId": {
+                    "type": "string",
+                    "description": "ID of the event to delete"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "deletedEventId": {
+                      "type": "string"
                     }
                   }
                 }
