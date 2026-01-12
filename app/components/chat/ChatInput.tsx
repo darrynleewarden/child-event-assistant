@@ -1,14 +1,95 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 
 interface ChatInputProps {
   onSend?: (message: string) => void
   placeholder?: string
 }
 
-export function ChatInput({ onSend, placeholder = "[Mic Output]" }: ChatInputProps) {
+// Type definitions for Web Speech API
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList
+  resultIndex: number
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string
+  message?: string
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  start(): void
+  stop(): void
+  abort(): void
+  onresult: ((event: SpeechRecognitionEvent) => void) | null
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null
+  onend: (() => void) | null
+  onstart: (() => void) | null
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition
+    webkitSpeechRecognition: new () => SpeechRecognition
+  }
+}
+
+export function ChatInput({ onSend, placeholder = "Ask me anything..." }: ChatInputProps) {
   const [message, setMessage] = useState("")
+  const [isListening, setIsListening] = useState(false)
+  const [isSupported, setIsSupported] = useState(false)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
+
+  useEffect(() => {
+    // Check if Speech Recognition is supported
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (SpeechRecognition) {
+      setIsSupported(true)
+      recognitionRef.current = new SpeechRecognition()
+      recognitionRef.current.continuous = false
+      recognitionRef.current.interimResults = true
+      recognitionRef.current.lang = "en-US"
+
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+        const transcript = Array.from(event.results)
+          .map((result) => result[0].transcript)
+          .join("")
+        setMessage(transcript)
+      }
+
+      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
+        console.error("Speech recognition error:", event.error)
+        setIsListening(false)
+      }
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false)
+      }
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort()
+      }
+    }
+  }, [])
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) return
+
+    if (isListening) {
+      recognitionRef.current.stop()
+      setIsListening(false)
+    } else {
+      setMessage("") // Clear previous message when starting new recording
+      recognitionRef.current.start()
+      setIsListening(true)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,12 +106,20 @@ export function ChatInput({ onSend, placeholder = "[Mic Output]" }: ChatInputPro
         <div className="flex items-center gap-3 rounded-full border-2 border-gray-300 bg-white px-4 py-3">
           <button
             type="button"
-            className="flex-shrink-0 text-gray-600 hover:text-gray-800"
-            aria-label="Voice input"
+            onClick={toggleListening}
+            disabled={!isSupported}
+            className={`shrink-0 transition-colors ${isListening
+                ? "text-red-500 animate-pulse"
+                : isSupported
+                  ? "text-gray-600 hover:text-gray-800"
+                  : "text-gray-300 cursor-not-allowed"
+              }`}
+            aria-label={isListening ? "Stop listening" : "Voice input"}
+            title={!isSupported ? "Speech recognition not supported in this browser" : undefined}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              fill="none"
+              fill={isListening ? "currentColor" : "none"}
               viewBox="0 0 24 24"
               strokeWidth={2}
               stroke="currentColor"
@@ -48,13 +137,17 @@ export function ChatInput({ onSend, placeholder = "[Mic Output]" }: ChatInputPro
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder={placeholder}
+            placeholder={isListening ? "Listening..." : placeholder}
             className="flex-1 bg-transparent text-gray-800 placeholder-gray-400 outline-none"
           />
 
           <button
             type="submit"
-            className="flex-shrink-0 text-gray-600 hover:text-gray-800"
+            disabled={!message.trim()}
+            className={`shrink-0 transition-colors ${message.trim()
+                ? "text-gray-600 hover:text-gray-800"
+                : "text-gray-300"
+              }`}
             aria-label="Send message"
           >
             <svg
