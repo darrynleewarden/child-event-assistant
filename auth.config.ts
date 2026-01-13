@@ -13,7 +13,8 @@ export const authConfig = {
         nextUrl.pathname.startsWith("/dashboard") ||
         nextUrl.pathname.startsWith("/chat") ||
         nextUrl.pathname.startsWith("/children") ||
-        nextUrl.pathname.startsWith("/events")
+        nextUrl.pathname.startsWith("/events") ||
+        nextUrl.pathname.startsWith("/reports")
 
       // Redirect logged-in users away from auth pages
       if (isLoggedIn && isAuthPage) {
