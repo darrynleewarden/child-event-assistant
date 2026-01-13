@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { auth } from "@/auth"
+import { Logo } from "@/app/components/Logo"
 
 export default async function Home() {
   const session = await auth()
@@ -8,9 +9,9 @@ export default async function Home() {
     <div className="min-h-screen bg-gradient-to-br from-secondary-light to-tertiary-light">
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <nav className="mb-12 flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-            Child Event Assistant
-          </h1>
+          <div className="text-primary">
+            <Logo className="h-10 w-auto" />
+          </div>
           <div className="flex gap-2">
             {session?.user ? (
               <Link

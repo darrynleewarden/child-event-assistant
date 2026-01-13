@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { useAutoSpeak } from "@/app/contexts/AutoSpeakContext"
+import { Logo } from "@/app/components/Logo"
 
 export function Navigation() {
   const pathname = usePathname()
@@ -17,6 +18,7 @@ export function Navigation() {
     { href: "/children", label: "Children" },
     { href: "/events", label: "Events" },
     { href: "/calendar", label: "Calendar" },
+    { href: "/reports", label: "Reports" },
   ]
 
   const handleSignOut = async () => {
@@ -28,9 +30,9 @@ export function Navigation() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 justify-between">
           <div className="flex">
-            <div className="flex flex-shrink-0 items-center">
-              <Link href="/dashboard" className="text-xl font-bold text-secondary">
-                Child Assistant
+            <div className="flex shrink-0 items-center">
+              <Link href="/dashboard" className="text-primary">
+                <Logo className="h-8 w-auto" />
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
