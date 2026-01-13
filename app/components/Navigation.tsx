@@ -19,6 +19,7 @@ export function Navigation() {
     { href: "/events", label: "Events" },
     { href: "/calendar", label: "Calendar" },
     { href: "/reports", label: "Reports" },
+    { href: "/profile", label: "Profile" },
   ]
 
   const handleSignOut = async () => {

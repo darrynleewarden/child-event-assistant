@@ -224,10 +224,10 @@ export default function CalendarPage() {
                                                 <>
                                                     <div
                                                         className={`mb-1 flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium ${isToday(day)
-                                                                ? "bg-purple-600 text-white"
-                                                                : isSelected(day)
-                                                                    ? "bg-purple-100 text-purple-700"
-                                                                    : "text-gray-900"
+                                                            ? "bg-purple-600 text-white"
+                                                            : isSelected(day)
+                                                                ? "bg-purple-100 text-purple-700"
+                                                                : "text-gray-900"
                                                             }`}
                                                     >
                                                         {day}

@@ -4,6 +4,8 @@ interface BedrockRequest {
   userId?: string
   userEmail?: string
   userName?: string
+  currentDate?: string
+  currentTime?: string
 }
 
 interface BedrockResponse {
@@ -33,6 +35,11 @@ export async function invokeBedrockAgent(
     throw new Error('NEXT_PUBLIC_BEDROCK_API_URL is not configured')
   }
 
+  // Get current date and time to provide context to the AI
+  const now = new Date()
+  const currentDate = now.toISOString().split('T')[0] // YYYY-MM-DD format
+  const currentTime = now.toTimeString().split(' ')[0] // HH:MM:SS format
+
   const response = await fetch(apiEndpoint, {
     method: 'POST',
     headers: {
@@ -44,6 +51,8 @@ export async function invokeBedrockAgent(
       userId: userContext?.userId,
       userEmail: userContext?.email,
       userName: userContext?.name,
+      currentDate,
+      currentTime,
     } as BedrockRequest),
   })
 

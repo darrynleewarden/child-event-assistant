@@ -17,7 +17,7 @@ exports.handler = async (event) => {
   try {
     // Parse request body
     const body = JSON.parse(event.body || '{}');
-    const { message, sessionId: providedSessionId, userId, userEmail, userName } = body;
+    const { message, sessionId: providedSessionId, userId, userEmail, userName, currentDate, currentTime } = body;
 
     if (!message) {
       return {
@@ -38,20 +38,31 @@ exports.handler = async (event) => {
 
     // Build input text with user context prepended (invisible to the user but available to the agent)
     let inputText = message;
-    if (userId) {
-      // Prepend user context as a system instruction that the agent can use
-      // This tells the agent who the current user is so it can use their userId for database operations
-      const userContext = [
-        `[SYSTEM CONTEXT - Current User Information]`,
-        `User ID: ${userId}`,
-        userEmail ? `Email: ${userEmail}` : null,
-        userName ? `Name: ${userName}` : null,
-        `[END SYSTEM CONTEXT]`,
-        ``,
-        `User message: ${message}`
-      ].filter(Boolean).join('\n');
-      inputText = userContext;
+
+    // Build system context with date/time and user information
+    const systemContextParts = ['[SYSTEM CONTEXT]'];
+
+    // Add date/time context (Option A implementation)
+    if (currentDate && currentTime) {
+      systemContextParts.push(`Current Date: ${currentDate}`);
+      systemContextParts.push(`Current Time: ${currentTime}`);
+      systemContextParts.push('Note: When user mentions relative dates like "tomorrow", "next week", etc., calculate based on the current date above.');
     }
+
+    // Add user context
+    if (userId) {
+      systemContextParts.push(`User ID: ${userId}`);
+      if (userEmail) systemContextParts.push(`Email: ${userEmail}`);
+      if (userName) systemContextParts.push(`Name: ${userName}`);
+    }
+
+    systemContextParts.push('[END SYSTEM CONTEXT]');
+    systemContextParts.push('');
+    systemContextParts.push(`User message: ${message}`);
+
+    inputText = systemContextParts.join('\n');
+
+    console.log('Enhanced input text:', inputText);
 
     // Invoke Bedrock Agent with session context
     const command = new InvokeAgentCommand({

@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { message, sessionId } = body
+    const { message, sessionId, currentDate, currentTime } = body
 
     if (!message) {
       return NextResponse.json(
@@ -16,11 +16,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Enhance message with current date/time context (Option A)
+    const enhancedMessage = currentDate && currentTime
+      ? `[System: Today is ${currentDate}, current time is ${currentTime}] ${message}`
+      : message
+
+    console.log('Enhanced message with context:', enhancedMessage)
+
     // Simulate processing delay
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
     // Mock response - simulating Bedrock Agent
-    const mockResponse = generateMockResponse(message)
+    const mockResponse = generateMockResponse(enhancedMessage)
 
     return NextResponse.json({
       message: mockResponse,
