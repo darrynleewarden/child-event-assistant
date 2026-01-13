@@ -22,6 +22,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   children      ChildDetails[]
+  bookings      Booking[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -75,6 +76,7 @@ model ChildDetails {
   userId      String
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   events      ChildEvent[]
+  bookings    Booking[]
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -91,4 +93,20 @@ model ChildEvent {
   updatedAt DateTime     @updatedAt
 
   @@map("child-events")
+}
+
+model Booking {
+  id        String        @id @default(cuid())
+  name      String
+  date      DateTime
+  time      String // Store time as string (e.g., "14:30") for flexibility
+  notes     String?
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  childId   String?
+  child     ChildDetails? @relation(fields: [childId], references: [id], onDelete: SetNull)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@map("bookings")
 }

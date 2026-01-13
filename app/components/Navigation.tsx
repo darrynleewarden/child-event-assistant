@@ -13,6 +13,7 @@ export function Navigation() {
     { href: "/chat", label: "Chat" },
     { href: "/children", label: "Children" },
     { href: "/events", label: "Events" },
+    { href: "/calendar", label: "Calendar" },
   ]
 
   const handleSignOut = async () => {
@@ -36,11 +37,10 @@ export function Navigation() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
-                      isActive
+                    className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${isActive
                         ? "border-purple-500 text-gray-900"
                         : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                    }`}
+                      }`}
                   >
                     {item.label}
                   </Link>
@@ -111,11 +111,10 @@ function MobileMenu({
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsOpen(false)}
-                  className={`block rounded-md px-3 py-2 text-base font-medium ${
-                    isActive
+                  className={`block rounded-md px-3 py-2 text-base font-medium ${isActive
                       ? "bg-purple-50 text-purple-700"
                       : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                  }`}
+                    }`}
                 >
                   {item.label}
                 </Link>

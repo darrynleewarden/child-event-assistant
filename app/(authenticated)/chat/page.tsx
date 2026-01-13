@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useSession } from "next-auth/react"
 import { ChatMessage } from "@/app/components/chat/ChatMessage"
 import { ChatInput } from "@/app/components/chat/ChatInput"
 import { invokeBedrockAgent } from "@/lib/bedrock-api"
@@ -14,6 +15,7 @@ interface Message {
 }
 
 export default function ChatPage() {
+  const { data: session } = useSession()
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -25,7 +27,7 @@ export default function ChatPage() {
     },
   ])
   const [isLoading, setIsLoading] = useState(false)
-  const [sessionId, setSessionId] = useState<string>()
+  const [chatSessionId, setChatSessionId] = useState<string>()
   const [error, setError] = useState<string>()
   const [autoSpeak, setAutoSpeak] = useState(false)
 
@@ -66,10 +68,17 @@ export default function ChatPage() {
     setError(undefined)
 
     try {
-      const response = await invokeBedrockAgent(message, sessionId)
+      // Get user context from session
+      const userContext = session?.user?.id ? {
+        userId: session.user.id,
+        email: session.user.email || undefined,
+        name: session.user.name || undefined,
+      } : undefined
 
-      if (response.sessionId && !sessionId) {
-        setSessionId(response.sessionId)
+      const response = await invokeBedrockAgent(message, chatSessionId, userContext)
+
+      if (response.sessionId && !chatSessionId) {
+        setChatSessionId(response.sessionId)
       }
 
       addBotMessage(response.message)

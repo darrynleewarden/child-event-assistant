@@ -1,6 +1,9 @@
 interface BedrockRequest {
   message: string
   sessionId?: string
+  userId?: string
+  userEmail?: string
+  userName?: string
 }
 
 interface BedrockResponse {
@@ -13,9 +16,16 @@ interface BedrockError {
   details?: string
 }
 
+interface UserContext {
+  userId: string
+  email?: string
+  name?: string
+}
+
 export async function invokeBedrockAgent(
   message: string,
-  sessionId?: string
+  sessionId?: string,
+  userContext?: UserContext
 ): Promise<BedrockResponse> {
   const apiEndpoint = process.env.NEXT_PUBLIC_BEDROCK_API_URL
 
@@ -31,6 +41,9 @@ export async function invokeBedrockAgent(
     body: JSON.stringify({
       message,
       sessionId,
+      userId: userContext?.userId,
+      userEmail: userContext?.email,
+      userName: userContext?.name,
     } as BedrockRequest),
   })
 

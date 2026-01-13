@@ -17,7 +17,7 @@ exports.handler = async (event) => {
   try {
     // Parse request body
     const body = JSON.parse(event.body || '{}');
-    const { message, sessionId: providedSessionId } = body;
+    const { message, sessionId: providedSessionId, userId, userEmail, userName } = body;
 
     if (!message) {
       return {
@@ -36,12 +36,29 @@ exports.handler = async (event) => {
     // This ensures conversation context is maintained across requests
     const sessionId = providedSessionId || generateSessionId();
 
+    // Build input text with user context prepended (invisible to the user but available to the agent)
+    let inputText = message;
+    if (userId) {
+      // Prepend user context as a system instruction that the agent can use
+      // This tells the agent who the current user is so it can use their userId for database operations
+      const userContext = [
+        `[SYSTEM CONTEXT - Current User Information]`,
+        `User ID: ${userId}`,
+        userEmail ? `Email: ${userEmail}` : null,
+        userName ? `Name: ${userName}` : null,
+        `[END SYSTEM CONTEXT]`,
+        ``,
+        `User message: ${message}`
+      ].filter(Boolean).join('\n');
+      inputText = userContext;
+    }
+
     // Invoke Bedrock Agent with session context
     const command = new InvokeAgentCommand({
       agentId: process.env.AGENT_ID,
       agentAliasId: process.env.AGENT_ALIAS_ID,
       sessionId: sessionId,
-      inputText: message,
+      inputText: inputText,
       enableTrace: false,
       // Memory configuration is handled at the agent level
       // The session ID maintains conversation context
