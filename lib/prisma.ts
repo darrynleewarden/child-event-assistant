@@ -3,8 +3,11 @@ import { PrismaPg } from "@prisma/adapter-pg"
 import { Pool } from "pg"
 
 const prismaClientSingleton = () => {
+  // Skip initialization during build time
   if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL environment variable is not set")
+    console.warn("DATABASE_URL not set, using placeholder Prisma client")
+    // Return a placeholder that will be replaced at runtime
+    return new PrismaClient()
   }
 
   const pool = new Pool({
@@ -12,16 +15,16 @@ const prismaClientSingleton = () => {
     ssl: process.env.DATABASE_URL.includes("localhost")
       ? undefined
       : { rejectUnauthorized: false },
-    max: 10, // Maximum number of connections in the pool
-    idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-    connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection could not be established
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
   })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })
 }
 
 declare const globalThis: {
-  prismaGlobal: ReturnType<typeof prismaClientSingleton>
+  prismaGlobal: ReturnType<typeof prismaClientSingleton> | undefined
 } & typeof global
 
 const prisma = globalThis.prismaGlobal ?? prismaClientSingleton()
