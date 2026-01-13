@@ -82,7 +82,8 @@ module "bedrock_agent" {
     "http://localhost:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001"
+    "http://127.0.0.1:3001",
+    "https://child-event-assistant.vercel.app"
   ]
   cors_allow_credentials = true
 

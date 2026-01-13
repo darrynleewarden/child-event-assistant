@@ -15,7 +15,7 @@ const prismaClientSingleton = () => {
     const { PrismaPg } = require("@prisma/adapter-pg")
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { Pool } = require("pg")
-    
+
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: process.env.DATABASE_URL.includes("localhost")
