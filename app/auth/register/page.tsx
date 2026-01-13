@@ -23,7 +23,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary-light to-tertiary-light px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
@@ -33,7 +33,7 @@ export default function RegisterPage() {
             Already have an account?{" "}
             <Link
               href="/auth/signin"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="font-medium text-secondary hover:text-secondary/80"
             >
               Sign in here
             </Link>
@@ -68,7 +68,7 @@ export default function RegisterPage() {
                   type="text"
                   autoComplete="name"
                   required
-                  className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                  className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary sm:text-sm"
                   placeholder="John Doe"
                 />
               </div>
@@ -88,7 +88,7 @@ export default function RegisterPage() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                  className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary sm:text-sm"
                   placeholder="you@example.com"
                 />
               </div>
@@ -108,7 +108,7 @@ export default function RegisterPage() {
                   type="password"
                   autoComplete="new-password"
                   required
-                  className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                  className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary sm:text-sm"
                   placeholder="At least 6 characters"
                   minLength={6}
                 />
@@ -122,7 +122,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={isPending}
-                className="flex w-full justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex w-full justify-center rounded-md bg-secondary px-4 py-2 text-sm font-medium text-white hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isPending ? "Creating account..." : "Create account"}
               </button>
@@ -133,7 +133,7 @@ export default function RegisterPage() {
         <div className="text-center">
           <Link
             href="/"
-            className="text-sm font-medium text-blue-600 hover:text-blue-500"
+            className="text-sm font-medium text-secondary hover:text-secondary/80"
           >
             ← Back to home
           </Link>

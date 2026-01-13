@@ -10,7 +10,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="group relative flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="group relative flex w-full justify-center rounded-md bg-secondary px-3 py-2 text-sm font-semibold text-white hover:bg-secondary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {pending ? "Signing in..." : "Sign in"}
     </button>
@@ -43,7 +43,7 @@ export function SignInForm() {
               type="email"
               autoComplete="email"
               required
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary sm:text-sm"
             />
           </div>
 
@@ -60,7 +60,7 @@ export function SignInForm() {
               type="password"
               autoComplete="current-password"
               required
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-secondary focus:outline-none focus:ring-secondary sm:text-sm"
             />
           </div>
         </div>

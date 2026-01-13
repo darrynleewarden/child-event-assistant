@@ -5,7 +5,7 @@ export default async function Home() {
   const session = await auth()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-secondary-light to-tertiary-light">
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <nav className="mb-12 flex flex-col items-center justify-between gap-4 sm:flex-row">
           <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
@@ -15,14 +15,14 @@ export default async function Home() {
             {session?.user ? (
               <Link
                 href="/dashboard"
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-white hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
               >
                 Go to Dashboard
               </Link>
             ) : (
               <Link
                 href="/auth/signin"
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-white hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-secondary focus:ring-offset-2"
               >
                 Sign In
               </Link>
@@ -42,9 +42,9 @@ export default async function Home() {
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <div className="rounded-lg bg-white p-6 shadow-md">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                 <svg
-                  className="h-6 w-6 text-blue-600"
+                  className="h-6 w-6 text-primary"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -66,9 +66,9 @@ export default async function Home() {
             </div>
 
             <div className="rounded-lg bg-white p-6 shadow-md">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-secondary/10">
                 <svg
-                  className="h-6 w-6 text-green-600"
+                  className="h-6 w-6 text-secondary"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -90,9 +90,9 @@ export default async function Home() {
             </div>
 
             <div className="rounded-lg bg-white p-6 shadow-md">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-tertiary/10">
                 <svg
-                  className="h-6 w-6 text-purple-600"
+                  className="h-6 w-6 text-tertiary"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

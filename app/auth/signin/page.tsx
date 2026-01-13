@@ -9,7 +9,7 @@ export default async function SignInPage({
   const params = await searchParams
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary-light to-tertiary-light px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
@@ -19,7 +19,7 @@ export default async function SignInPage({
             Don't have an account?{" "}
             <Link
               href="/auth/register"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="font-medium text-secondary hover:text-secondary/80"
             >
               Register here
             </Link>
@@ -39,7 +39,7 @@ export default async function SignInPage({
         <div className="text-center">
           <Link
             href="/"
-            className="text-sm font-medium text-blue-600 hover:text-blue-500"
+            className="text-sm font-medium text-secondary hover:text-secondary/80"
           >
             ← Back to home
           </Link>

@@ -101,18 +101,18 @@ export function ChatInput({ onSend, placeholder = "Ask me anything..." }: ChatIn
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-gray-500">AI responses can be inaccurate</p>
+      <p className="text-xs text-gray-400">AI responses can be inaccurate</p>
       <form onSubmit={handleSubmit} className="relative">
-        <div className="flex items-center gap-3 rounded-full border-2 border-gray-300 bg-white px-4 py-3">
+        <div className="flex items-center gap-3 rounded-xl border border-gray-300 bg-white px-4 py-3">
           <button
             type="button"
             onClick={toggleListening}
             disabled={!isSupported}
             className={`shrink-0 transition-colors ${isListening
-                ? "text-red-500 animate-pulse"
-                : isSupported
-                  ? "text-gray-600 hover:text-gray-800"
-                  : "text-gray-300 cursor-not-allowed"
+              ? "text-primary animate-pulse"
+              : isSupported
+                ? "text-gray-400 hover:text-gray-600"
+                : "text-gray-300 cursor-not-allowed"
               }`}
             aria-label={isListening ? "Stop listening" : "Voice input"}
             title={!isSupported ? "Speech recognition not supported in this browser" : undefined}
@@ -145,8 +145,8 @@ export function ChatInput({ onSend, placeholder = "Ask me anything..." }: ChatIn
             type="submit"
             disabled={!message.trim()}
             className={`shrink-0 transition-colors ${message.trim()
-                ? "text-gray-600 hover:text-gray-800"
-                : "text-gray-300"
+              ? "text-gray-500 hover:text-gray-700"
+              : "text-gray-300"
               }`}
             aria-label="Send message"
           >
@@ -154,9 +154,9 @@ export function ChatInput({ onSend, placeholder = "Ask me anything..." }: ChatIn
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              strokeWidth={2}
+              strokeWidth={1.5}
               stroke="currentColor"
-              className="h-6 w-6"
+              className="h-5 w-5"
             >
               <path
                 strokeLinecap="round"

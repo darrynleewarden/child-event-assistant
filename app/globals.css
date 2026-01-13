@@ -3,11 +3,31 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Brand Colors from Style Guide */
+  --primary: #D83B03;
+  /* Hull Orange 900 */
+  --primary-light: #f5a888;
+  /* Lighter orange for backgrounds */
+  --secondary: #00776B;
+  /* Nebula Cyan 700 */
+  --secondary-light: #e0f2f1;
+  /* Light cyan for backgrounds */
+  --tertiary: #8068BA;
+  /* Luna Purple 500 */
+  --tertiary-light: #ede7f6;
+  /* Light purple for backgrounds */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-secondary: var(--secondary);
+  --color-secondary-light: var(--secondary-light);
+  --color-tertiary: var(--tertiary);
+  --color-tertiary-light: var(--tertiary-light);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
