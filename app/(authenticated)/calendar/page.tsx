@@ -1,14 +1,7 @@
 "use client"
 
-import { useState } from "react"
-
-interface CalendarEvent {
-    id: string
-    name: string
-    eventType: string
-    childName: string
-    date: Date
-}
+import { useState, useEffect, useCallback } from "react"
+import { getCalendarData, CalendarEvent } from "@/app/actions/calendar"
 
 // Helper to get days in a month
 function getDaysInMonth(year: number, month: number): number {
@@ -37,6 +30,7 @@ const EVENT_TYPE_COLORS: Record<string, string> = {
     Arts: "bg-purple-100 text-purple-800 border-purple-200",
     Social: "bg-yellow-100 text-yellow-800 border-yellow-200",
     Celebration: "bg-pink-100 text-pink-800 border-pink-200",
+    Booking: "bg-indigo-100 text-indigo-800 border-indigo-200",
     default: "bg-gray-100 text-gray-800 border-gray-200",
 }
 
@@ -45,38 +39,25 @@ export default function CalendarPage() {
     const [currentMonth, setCurrentMonth] = useState(today.getMonth())
     const [currentYear, setCurrentYear] = useState(today.getFullYear())
     const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+    const [events, setEvents] = useState<CalendarEvent[]>([])
+    const [isLoading, setIsLoading] = useState(true)
 
-    // Mock events for demonstration - in production, fetch from API
-    const [events] = useState<CalendarEvent[]>([
-        {
-            id: "1",
-            name: "Doctor's Appointment",
-            eventType: "Medical",
-            childName: "Emma",
-            date: new Date(currentYear, currentMonth, 15),
-        },
-        {
-            id: "2",
-            name: "Soccer Practice",
-            eventType: "Sports",
-            childName: "Emma",
-            date: new Date(currentYear, currentMonth, 18),
-        },
-        {
-            id: "3",
-            name: "Piano Lesson",
-            eventType: "Arts",
-            childName: "Lucas",
-            date: new Date(currentYear, currentMonth, 20),
-        },
-        {
-            id: "4",
-            name: "Birthday Party",
-            eventType: "Celebration",
-            childName: "Emma",
-            date: new Date(currentYear, currentMonth, 25),
-        },
-    ])
+    // Fetch events when month/year changes
+    const fetchEvents = useCallback(async () => {
+        setIsLoading(true)
+        try {
+            const data = await getCalendarData(currentYear, currentMonth)
+            setEvents(data.events)
+        } catch (error) {
+            console.error("Failed to fetch calendar events:", error)
+        } finally {
+            setIsLoading(false)
+        }
+    }, [currentYear, currentMonth])
+
+    useEffect(() => {
+        fetchEvents()
+    }, [fetchEvents])
 
     const daysInMonth = getDaysInMonth(currentYear, currentMonth)
     const firstDayOfMonth = getFirstDayOfMonth(currentYear, currentMonth)
@@ -300,9 +281,19 @@ export default function CalendarPage() {
                                                 className={`rounded-lg border p-3 ${EVENT_TYPE_COLORS[event.eventType] || EVENT_TYPE_COLORS.default
                                                     }`}
                                             >
-                                                <div className="font-medium">{event.name}</div>
+                                                <div className="flex items-start justify-between">
+                                                    <div className="font-medium">{event.name}</div>
+                                                    {event.time && (
+                                                        <span className="text-xs font-medium opacity-75">
+                                                            {event.time}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <div className="mt-1 text-sm opacity-75">
                                                     {event.childName} • {event.eventType}
+                                                    {event.type === "booking" && (
+                                                        <span className="ml-1 text-xs">(Booking)</span>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -361,6 +352,13 @@ export default function CalendarPage() {
                                         ))}
                                 </div>
                             </div>
+
+                            {/* Loading indicator */}
+                            {isLoading && (
+                                <div className="mt-4 text-center text-sm text-gray-500">
+                                    Loading events...
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
