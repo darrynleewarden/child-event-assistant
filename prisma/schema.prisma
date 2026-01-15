@@ -23,6 +23,8 @@ model User {
   sessions      Session[]
   children      ChildDetails[]
   bookings      Booking[]
+  meals         Meal[]
+  mealPlans     MealPlan[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -65,7 +67,7 @@ model VerificationToken {
 }
 
 model ChildDetails {
-  id          String       @id @default(cuid())
+  id          String          @id @default(cuid())
   firstName   String
   lastName    String?
   dateOfBirth DateTime
@@ -74,11 +76,12 @@ model ChildDetails {
   medicalInfo String?
   notes       String?
   userId      String
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   events      ChildEvent[]
   bookings    Booking[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  mealPlans   ChildMealPlan[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   @@map("child-details")
 }
@@ -109,4 +112,68 @@ model Booking {
   updatedAt DateTime      @updatedAt
 
   @@map("bookings")
+}
+
+model Meal {
+  id              String          @id @default(cuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?
+  ingredients     String?         // JSON array
+  category        String          // breakfast, lunch, dinner, snack
+  isTemplate      Boolean         @default(false)
+  allergyInfo     String?         // JSON array
+  prepTime        Int?            // in minutes
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  mealPlanEntries MealPlanEntry[]
+
+  @@map("meals")
+}
+
+model MealPlan {
+  id         String          @id @default(cuid())
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  startDate  DateTime        // Monday of the week
+  endDate    DateTime        // Sunday of the week
+  isActive   Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  entries    MealPlanEntry[]
+  childPlans ChildMealPlan[]
+
+  @@map("meal-plans")
+}
+
+model MealPlanEntry {
+  id         String   @id @default(cuid())
+  mealPlanId String
+  mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  mealId     String
+  meal       Meal     @relation(fields: [mealId], references: [id], onDelete: Restrict)
+  dayOfWeek  Int      // 0-6 (Monday-Sunday)
+  mealTime   String   // breakfast, lunch, dinner, snack
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([mealPlanId, dayOfWeek, mealTime])
+  @@map("meal-plan-entries")
+}
+
+model ChildMealPlan {
+  id          String       @id @default(cuid())
+  childId     String
+  child       ChildDetails @relation(fields: [childId], references: [id], onDelete: Cascade)
+  mealPlanId  String
+  mealPlan    MealPlan     @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  preferences String?      // JSON array
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([childId, mealPlanId])
+  @@map("child-meal-plans")
 }

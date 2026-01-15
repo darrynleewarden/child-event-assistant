@@ -1,0 +1,175 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Child Event Manager - Bookings API",
+    "version": "3.0.0",
+    "description": "API for managing bookings"
+  },
+  "paths": {
+    "/create-booking": {
+      "post": {
+        "summary": "Create a new booking",
+        "description": "Creates a new booking/appointment. First call without confirmed to get a preview. Always pass both userId and userEmail from the system context.",
+        "operationId": "createBooking",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "date",
+                  "time"
+                ],
+                "properties": {
+                  "confirmed": {
+                    "type": "boolean",
+                    "description": "Set to true only after user confirms"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Booking name/title"
+                  },
+                  "date": {
+                    "type": "string",
+                    "description": "Booking date (YYYY-MM-DD)"
+                  },
+                  "time": {
+                    "type": "string",
+                    "description": "Booking time (HH:MM format)"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Additional notes"
+                  },
+                  "userId": {
+                    "type": "string",
+                    "description": "ID of the user from system context"
+                  },
+                  "userEmail": {
+                    "type": "string",
+                    "description": "Email of the user from system context (used as fallback)"
+                  },
+                  "childId": {
+                    "type": "string",
+                    "description": "Optional: ID of the child this booking is for"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking created or preview returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delete-booking": {
+      "post": {
+        "summary": "Delete a booking",
+        "description": "Permanently deletes a booking. First call without confirmed to get a preview.",
+        "operationId": "deleteBooking",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "bookingId"
+                ],
+                "properties": {
+                  "confirmed": {
+                    "type": "boolean",
+                    "description": "Set to true only after user confirms"
+                  },
+                  "bookingId": {
+                    "type": "string",
+                    "description": "ID of the booking to delete"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Booking deleted or preview returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-bookings": {
+      "post": {
+        "summary": "Get bookings with optional filtering",
+        "description": "Retrieves bookings. Can filter by user, child, date, or date range. Provide bookingId for single booking details.",
+        "operationId": "getBookings",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "bookingId": {
+                    "type": "string",
+                    "description": "Get a specific booking by ID"
+                  },
+                  "userId": {
+                    "type": "string",
+                    "description": "Filter by user ID"
+                  },
+                  "childId": {
+                    "type": "string",
+                    "description": "Filter by child ID"
+                  },
+                  "date": {
+                    "type": "string",
+                    "description": "Filter by specific date (YYYY-MM-DD)"
+                  },
+                  "fromDate": {
+                    "type": "string",
+                    "description": "Start of date range (YYYY-MM-DD)"
+                  },
+                  "toDate": {
+                    "type": "string",
+                    "description": "End of date range (YYYY-MM-DD)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of bookings or single booking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

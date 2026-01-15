@@ -23,11 +23,11 @@ interface UserProfileCardProps {
 export function UserProfileCard({ user }: UserProfileCardProps) {
   const initials = user.name
     ? user.name
-        .split(" ")
-        .map((n) => n.charAt(0))
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
+      .split(" ")
+      .map((n) => n.charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
     : user.email.charAt(0).toUpperCase()
 
   return (
@@ -54,6 +54,12 @@ export function UserProfileCard({ user }: UserProfileCardProps) {
           <p className="text-gray-600 mt-1">{user.email}</p>
 
           <div className="mt-4 space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500">User ID:</span>
+              <span className="text-gray-900 font-mono text-xs bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                {user.id}
+              </span>
+            </div>
             <div className="flex items-center gap-2">
               <span className="text-gray-500">Email Status:</span>
               {user.emailVerified ? (

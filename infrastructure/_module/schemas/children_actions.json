@@ -1,0 +1,441 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Child Event Manager - Children & Events API",
+    "version": "3.0.0",
+    "description": "API for managing children, events, and users"
+  },
+  "paths": {
+    "/get-users": {
+      "post": {
+        "summary": "Get all users or filter by criteria",
+        "description": "Retrieves user information from the database. Use this to find valid user IDs before creating children or bookings.",
+        "operationId": "getUsers",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "Filter by exact email address"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Filter by user's name (partial match)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/create-child": {
+      "post": {
+        "summary": "Create a new child record",
+        "description": "Adds a new child to the database. IMPORTANT: First call without confirmed to get a preview, then call again with confirmed=true after user confirms. Always pass both userId and userEmail from the system context.",
+        "operationId": "createChild",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "firstName",
+                  "dateOfBirth"
+                ],
+                "properties": {
+                  "confirmed": {
+                    "type": "boolean",
+                    "description": "Set to true only after user confirms"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "description": "Child's first name"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "description": "Child's last name"
+                  },
+                  "dateOfBirth": {
+                    "type": "string",
+                    "description": "Date of birth in YYYY-MM-DD format"
+                  },
+                  "gender": {
+                    "type": "string",
+                    "description": "Child's gender"
+                  },
+                  "allergies": {
+                    "type": "string",
+                    "description": "Any allergies"
+                  },
+                  "medicalInfo": {
+                    "type": "string",
+                    "description": "Medical information"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "description": "Additional notes"
+                  },
+                  "userId": {
+                    "type": "string",
+                    "description": "ID of the user from system context"
+                  },
+                  "userEmail": {
+                    "type": "string",
+                    "description": "Email of the user from system context (used as fallback)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Child created or preview returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "child": {
+                      "type": "object"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "requiresConfirmation": {
+                      "type": "boolean"
+                    },
+                    "preview": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/update-child": {
+      "post": {
+        "summary": "Update child information",
+        "description": "Updates an existing child's information. First call without confirmed to get a preview.",
+        "operationId": "updateChild",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "childId"
+                ],
+                "properties": {
+                  "confirmed": {
+                    "type": "boolean",
+                    "description": "Set to true only after user confirms"
+                  },
+                  "childId": {
+                    "type": "string",
+                    "description": "ID of the child to update"
+                  },
+                  "firstName": {
+                    "type": "string"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "dateOfBirth": {
+                    "type": "string"
+                  },
+                  "gender": {
+                    "type": "string"
+                  },
+                  "allergies": {
+                    "type": "string"
+                  },
+                  "medicalInfo": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Child updated or preview returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delete-child": {
+      "post": {
+        "summary": "Delete a child record",
+        "description": "Permanently deletes a child and all associated events and bookings. First call without confirmed to get a preview.",
+        "operationId": "deleteChild",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "childId"
+                ],
+                "properties": {
+                  "confirmed": {
+                    "type": "boolean",
+                    "description": "Set to true only after user confirms"
+                  },
+                  "childId": {
+                    "type": "string",
+                    "description": "ID of the child to delete"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Child deleted or preview returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-children": {
+      "post": {
+        "summary": "Get all children or filter by criteria",
+        "description": "Retrieves children information from the database. Can filter by user ID or child name.",
+        "operationId": "getChildren",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "description": "Filter by user ID"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "description": "Filter by child's first name"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of children",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "children": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get-child-details": {
+      "post": {
+        "summary": "Get detailed information about a specific child including their events",
+        "description": "Retrieves comprehensive information about a child including all their events, age, and related data",
+        "operationId": "getChildDetails",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "childId"
+                ],
+                "properties": {
+                  "childId": {
+                    "type": "string",
+                    "description": "The ID of the child"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Detailed child information with events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "child": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/create-event": {
+      "post": {
+        "summary": "Create a new event for a child",
+        "description": "Logs a new event for a child. First call without confirmed to get a preview.",
+        "operationId": "createEvent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "childId",
+                  "name",
+                  "eventType"
+                ],
+                "properties": {
+                  "confirmed": {
+                    "type": "boolean",
+                    "description": "Set to true only after user confirms"
+                  },
+                  "childId": {
+                    "type": "string",
+                    "description": "ID of the child"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Event name/description"
+                  },
+                  "eventType": {
+                    "type": "string",
+                    "description": "Type of event (medical, milestone, school, activity)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event created or preview returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delete-event": {
+      "post": {
+        "summary": "Delete an event",
+        "description": "Permanently deletes an event. First call without confirmed to get a preview.",
+        "operationId": "deleteEvent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "eventId"
+                ],
+                "properties": {
+                  "confirmed": {
+                    "type": "boolean",
+                    "description": "Set to true only after user confirms"
+                  },
+                  "eventId": {
+                    "type": "string",
+                    "description": "ID of the event to delete"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Event deleted or preview returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

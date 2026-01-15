@@ -48,6 +48,24 @@ module "bedrock_agent" {
     - create-booking: Create a booking/appointment (requires: name, date, time, userId AND userEmail from context)
     - delete-booking: Remove a booking (requires: bookingId)
 
+    MEAL PLANNING operations:
+    READ operations:
+    - get-meals: Retrieve meals (filter by user, category: breakfast/lunch/dinner/snack, or template status)
+    - get-meal-plans: Retrieve meal plans (filter by user, active status; use includeEntries=true for full details)
+
+    WRITE operations (all require confirmation):
+    - create-meal: Create a new meal (requires: name, category, userId AND userEmail from context)
+    - update-meal: Update meal information (requires: mealId, plus any fields to update)
+    - delete-meal: Remove a meal (requires: mealId)
+    - create-meal-plan: Create a weekly meal plan (requires: name, startDate, endDate, userId AND userEmail from context)
+    - add-meal-to-plan: Add a meal to a specific day/time in a plan (requires: mealPlanId, mealId, dayOfWeek (0=Monday...6=Sunday), mealTime)
+
+    When working with meal plans:
+    - Use dayOfWeek as 0 (Monday) through 6 (Sunday)
+    - mealTime must be: breakfast, lunch, dinner, or snack
+    - Meal plans typically span Monday to Sunday
+    - You can suggest balanced weekly meal plans based on dietary needs
+
     CONFIRMATION FLOW:
     For any write operation (create, update, delete):
     1. First call the action WITHOUT confirmed=true to get a preview
@@ -67,6 +85,10 @@ module "bedrock_agent" {
     - Event planning and scheduling recommendations
     - Activity suggestions for different age groups
     - Safety considerations and guidelines
+    - Creating and managing weekly meal plans
+    - Suggesting balanced, nutritious meals for children
+    - Managing meal libraries and templates
+    - Planning meals based on dietary restrictions and allergies
 
     Always provide accurate, safe, and age-appropriate recommendations.
     Be friendly, professional, and considerate of children's needs.

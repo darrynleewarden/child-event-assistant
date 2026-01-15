@@ -122,3 +122,32 @@ output "bedrock_action_group_id" {
   description = "Bedrock Agent Action Group ID for database actions"
   value       = var.enable_database ? aws_bedrockagent_agent_action_group.child_event_manager_database[0].id : null
 }
+
+# =============================================================================
+# Meal Planner Agent Outputs
+# =============================================================================
+
+output "meal_agent_id" {
+  description = "The ID of the Meal Planner Bedrock agent"
+  value       = var.enable_meal_agent ? aws_bedrockagent_agent.child_event_manager_meal_planner[0].id : null
+}
+
+output "meal_agent_arn" {
+  description = "The ARN of the Meal Planner Bedrock agent"
+  value       = var.enable_meal_agent ? aws_bedrockagent_agent.child_event_manager_meal_planner[0].agent_arn : null
+}
+
+output "meal_agent_name" {
+  description = "The name of the Meal Planner Bedrock agent"
+  value       = var.enable_meal_agent ? aws_bedrockagent_agent.child_event_manager_meal_planner[0].agent_name : null
+}
+
+output "meal_agent_alias_id" {
+  description = "The ID of the meal planner agent alias"
+  value       = var.enable_meal_agent ? aws_bedrockagent_agent_alias.child_event_manager_meal_planner[0].agent_alias_id : null
+}
+
+output "meal_agent_alias_arn" {
+  description = "The ARN of the meal planner agent alias"
+  value       = var.enable_meal_agent ? aws_bedrockagent_agent_alias.child_event_manager_meal_planner[0].agent_alias_arn : null
+}

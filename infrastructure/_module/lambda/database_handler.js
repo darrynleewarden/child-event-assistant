@@ -842,6 +842,555 @@ async function deleteBooking(parameters) {
   };
 }
 
+// ========== MEAL MANAGEMENT HANDLERS ==========
+
+// Handler for getting meals
+async function getMeals(parameters) {
+  const pool = await getDbPool();
+
+  let query = `
+    SELECT
+      id, "userId", name, description, ingredients,
+      category, "isTemplate", "allergyInfo", "prepTime",
+      "createdAt", "updatedAt"
+    FROM meals
+    WHERE 1=1
+  `;
+
+  const queryParams = [];
+
+  // If specific meal requested by ID
+  if (parameters.mealId) {
+    queryParams.push(parameters.mealId);
+    query += ` AND id = $${queryParams.length}`;
+  }
+
+  if (parameters.userId) {
+    queryParams.push(parameters.userId);
+    query += ` AND "userId" = $${queryParams.length}`;
+  }
+
+  if (parameters.category) {
+    queryParams.push(parameters.category);
+    query += ` AND category = $${queryParams.length}`;
+  }
+
+  if (parameters.isTemplate !== undefined) {
+    queryParams.push(parameters.isTemplate);
+    query += ` AND "isTemplate" = $${queryParams.length}`;
+  }
+
+  query += ' ORDER BY name';
+
+  const result = await pool.query(query, queryParams);
+  const meals = result.rows;
+
+  // If specific meal requested, return single meal object
+  if (parameters.mealId && result.rows.length > 0) {
+    return { meal: meals[0] };
+  }
+
+  return {
+    meals,
+    count: meals.length
+  };
+}
+
+// Handler for creating a new meal
+async function createMeal(parameters) {
+  const pool = await getDbPool();
+
+  if (!parameters.name || !parameters.category) {
+    throw new Error("name and category are required");
+  }
+
+  if (!parameters.userId && !parameters.userEmail) {
+    throw new Error("userId or userEmail is required");
+  }
+
+  // Validate category
+  const validCategories = ['breakfast', 'lunch', 'dinner', 'snack'];
+  if (!validCategories.includes(parameters.category)) {
+    throw new Error(`Invalid category. Must be one of: ${validCategories.join(', ')}`);
+  }
+
+  // Resolve user - try ID first, then fall back to email
+  const user = await resolveUser(pool, parameters.userId, parameters.userEmail);
+  if (!user) {
+    throw new Error(`User not found. Tried ID: "${parameters.userId}", Email: "${parameters.userEmail}". Please sign out and sign back in to refresh your session.`);
+  }
+
+  // Use the resolved user's actual ID for the database operation
+  const resolvedUserId = user.id;
+
+  // Always require confirmation for DB-modifying actions
+  if (parameters.confirmed !== true && parameters.confirmed !== "true") {
+    return {
+      requiresConfirmation: true,
+      action: "create-meal",
+      message: `⚠️ CONFIRMATION REQUIRED: Create meal "${parameters.name}" (${parameters.category}) for user "${user.name || user.email}"? Please ask the user to confirm before proceeding.`,
+      preview: {
+        name: parameters.name,
+        description: parameters.description || null,
+        category: parameters.category,
+        ingredients: parameters.ingredients || null,
+        isTemplate: parameters.isTemplate || false,
+        allergyInfo: parameters.allergyInfo || null,
+        prepTime: parameters.prepTime || null,
+        userId: resolvedUserId,
+        userName: user.name || user.email
+      }
+    };
+  }
+
+  const mealId = createId();
+  const now = new Date().toISOString();
+
+  const query = `
+    INSERT INTO meals (
+      id, "userId", name, description, ingredients,
+      category, "isTemplate", "allergyInfo", "prepTime",
+      "createdAt", "updatedAt"
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    RETURNING *
+  `;
+
+  const values = [
+    mealId,
+    resolvedUserId,
+    parameters.name,
+    parameters.description || null,
+    parameters.ingredients || null,
+    parameters.category,
+    parameters.isTemplate || false,
+    parameters.allergyInfo || null,
+    parameters.prepTime || null,
+    now,
+    now
+  ];
+
+  const result = await pool.query(query, values);
+
+  return {
+    meal: result.rows[0],
+    message: `Meal "${parameters.name}" created successfully`
+  };
+}
+
+// Handler for updating a meal
+async function updateMeal(parameters) {
+  const pool = await getDbPool();
+
+  if (!parameters.mealId) {
+    throw new Error("mealId is required");
+  }
+
+  // Fetch the current meal data for preview
+  const currentMealResult = await pool.query('SELECT * FROM meals WHERE id = $1', [parameters.mealId]);
+  if (currentMealResult.rows.length === 0) {
+    throw new Error("Meal not found");
+  }
+  const currentMeal = currentMealResult.rows[0];
+
+  // Validate category if provided
+  if (parameters.category) {
+    const validCategories = ['breakfast', 'lunch', 'dinner', 'snack'];
+    if (!validCategories.includes(parameters.category)) {
+      throw new Error(`Invalid category. Must be one of: ${validCategories.join(', ')}`);
+    }
+  }
+
+  // Build dynamic update query
+  const updates = [];
+  const values = [];
+  let paramIndex = 1;
+  const changes = {};
+
+  if (parameters.name !== undefined) {
+    updates.push(`name = $${paramIndex++}`);
+    values.push(parameters.name);
+    changes.name = { from: currentMeal.name, to: parameters.name };
+  }
+  if (parameters.description !== undefined) {
+    updates.push(`description = $${paramIndex++}`);
+    values.push(parameters.description);
+    changes.description = { from: currentMeal.description, to: parameters.description };
+  }
+  if (parameters.ingredients !== undefined) {
+    updates.push(`ingredients = $${paramIndex++}`);
+    values.push(parameters.ingredients);
+    changes.ingredients = { from: currentMeal.ingredients, to: parameters.ingredients };
+  }
+  if (parameters.category !== undefined) {
+    updates.push(`category = $${paramIndex++}`);
+    values.push(parameters.category);
+    changes.category = { from: currentMeal.category, to: parameters.category };
+  }
+  if (parameters.isTemplate !== undefined) {
+    updates.push(`"isTemplate" = $${paramIndex++}`);
+    values.push(parameters.isTemplate);
+    changes.isTemplate = { from: currentMeal.isTemplate, to: parameters.isTemplate };
+  }
+  if (parameters.allergyInfo !== undefined) {
+    updates.push(`"allergyInfo" = $${paramIndex++}`);
+    values.push(parameters.allergyInfo);
+    changes.allergyInfo = { from: currentMeal.allergyInfo, to: parameters.allergyInfo };
+  }
+  if (parameters.prepTime !== undefined) {
+    updates.push(`"prepTime" = $${paramIndex++}`);
+    values.push(parameters.prepTime);
+    changes.prepTime = { from: currentMeal.prepTime, to: parameters.prepTime };
+  }
+
+  if (updates.length === 0) {
+    throw new Error("No fields to update");
+  }
+
+  // Always require confirmation for DB-modifying actions
+  if (parameters.confirmed !== true && parameters.confirmed !== "true") {
+    return {
+      requiresConfirmation: true,
+      action: "update-meal",
+      message: `⚠️ CONFIRMATION REQUIRED: Update meal "${currentMeal.name}"? Changes: ${Object.keys(changes).map(k => `${k}: "${changes[k].from}" → "${changes[k].to}"`).join(", ")}. Please ask the user to confirm before proceeding.`,
+      preview: {
+        mealId: parameters.mealId,
+        currentData: currentMeal,
+        changes: changes
+      }
+    };
+  }
+
+  updates.push(`"updatedAt" = $${paramIndex++}`);
+  values.push(new Date().toISOString());
+
+  values.push(parameters.mealId);
+
+  const query = `
+    UPDATE meals
+    SET ${updates.join(", ")}
+    WHERE id = $${paramIndex}
+    RETURNING *
+  `;
+
+  const result = await pool.query(query, values);
+
+  if (result.rows.length === 0) {
+    throw new Error("Meal not found");
+  }
+
+  return {
+    meal: result.rows[0],
+    message: "Meal updated successfully"
+  };
+}
+
+// Handler for deleting a meal
+async function deleteMeal(parameters) {
+  const pool = await getDbPool();
+
+  if (!parameters.mealId) {
+    throw new Error("mealId is required");
+  }
+
+  // Fetch the meal data for preview
+  const mealResult = await pool.query('SELECT * FROM meals WHERE id = $1', [parameters.mealId]);
+  if (mealResult.rows.length === 0) {
+    throw new Error("Meal not found");
+  }
+  const meal = mealResult.rows[0];
+
+  // Check if meal is used in any meal plans
+  const usageResult = await pool.query(
+    'SELECT COUNT(*) as count FROM "meal-plan-entries" WHERE "mealId" = $1',
+    [parameters.mealId]
+  );
+  const usageCount = parseInt(usageResult.rows[0].count, 10);
+
+  // Always require confirmation for DB-modifying actions
+  if (parameters.confirmed !== true && parameters.confirmed !== "true") {
+    const warnings = [];
+    if (usageCount > 0) {
+      warnings.push(`⚠️ This meal is used in ${usageCount} meal plan entries. Deleting it may affect existing meal plans.`);
+    }
+
+    return {
+      requiresConfirmation: true,
+      action: "delete-meal",
+      message: `🚨 CONFIRMATION REQUIRED: Delete meal "${meal.name}" (${meal.category}) permanently? ${warnings.join(' ')} Please ask the user to confirm before proceeding.`,
+      preview: {
+        mealId: parameters.mealId,
+        meal: {
+          name: meal.name,
+          category: meal.category,
+          description: meal.description
+        },
+        usageCount: usageCount
+      }
+    };
+  }
+
+  const deleteResult = await pool.query(
+    'DELETE FROM meals WHERE id = $1 RETURNING name, category',
+    [parameters.mealId]
+  );
+
+  if (deleteResult.rows.length === 0) {
+    throw new Error("Meal not found");
+  }
+
+  const deletedMeal = deleteResult.rows[0];
+  return {
+    message: `Meal "${deletedMeal.name}" (${deletedMeal.category}) deleted successfully`,
+    deletedMealId: parameters.mealId
+  };
+}
+
+// Handler for getting meal plans
+async function getMealPlans(parameters) {
+  const pool = await getDbPool();
+
+  let query = `
+    SELECT
+      id, "userId", name, "startDate", "endDate",
+      "isActive", "createdAt", "updatedAt"
+    FROM "meal-plans"
+    WHERE 1=1
+  `;
+
+  const queryParams = [];
+
+  // If specific meal plan requested by ID
+  if (parameters.mealPlanId) {
+    queryParams.push(parameters.mealPlanId);
+    query += ` AND id = $${queryParams.length}`;
+  }
+
+  if (parameters.userId) {
+    queryParams.push(parameters.userId);
+    query += ` AND "userId" = $${queryParams.length}`;
+  }
+
+  if (parameters.isActive !== undefined) {
+    queryParams.push(parameters.isActive);
+    query += ` AND "isActive" = $${queryParams.length}`;
+  }
+
+  query += ' ORDER BY "startDate" DESC';
+
+  const result = await pool.query(query, queryParams);
+  const mealPlans = result.rows;
+
+  // If includeEntries is requested, fetch entries for each meal plan
+  if (parameters.includeEntries) {
+    for (const plan of mealPlans) {
+      const entriesQuery = `
+        SELECT
+          mpe.id, mpe."mealPlanId", mpe."mealId", mpe."dayOfWeek",
+          mpe."mealTime", mpe.notes, mpe."createdAt", mpe."updatedAt",
+          m.name as "mealName", m.description as "mealDescription",
+          m.category, m."prepTime", m."allergyInfo"
+        FROM "meal-plan-entries" mpe
+        JOIN meals m ON mpe."mealId" = m.id
+        WHERE mpe."mealPlanId" = $1
+        ORDER BY mpe."dayOfWeek", mpe."mealTime"
+      `;
+      const entriesResult = await pool.query(entriesQuery, [plan.id]);
+      plan.entries = entriesResult.rows;
+    }
+  }
+
+  // If specific meal plan requested, return single plan object
+  if (parameters.mealPlanId && result.rows.length > 0) {
+    return { mealPlan: mealPlans[0] };
+  }
+
+  return {
+    mealPlans,
+    count: mealPlans.length
+  };
+}
+
+// Handler for creating a new meal plan
+async function createMealPlan(parameters) {
+  const pool = await getDbPool();
+
+  if (!parameters.name || !parameters.startDate || !parameters.endDate) {
+    throw new Error("name, startDate, and endDate are required");
+  }
+
+  if (!parameters.userId && !parameters.userEmail) {
+    throw new Error("userId or userEmail is required");
+  }
+
+  // Resolve user - try ID first, then fall back to email
+  const user = await resolveUser(pool, parameters.userId, parameters.userEmail);
+  if (!user) {
+    throw new Error(`User not found. Tried ID: "${parameters.userId}", Email: "${parameters.userEmail}". Please sign out and sign back in to refresh your session.`);
+  }
+
+  // Use the resolved user's actual ID for the database operation
+  const resolvedUserId = user.id;
+
+  // Validate dates
+  const startDate = new Date(parameters.startDate);
+  const endDate = new Date(parameters.endDate);
+  if (startDate > endDate) {
+    throw new Error("startDate must be before endDate");
+  }
+
+  // Always require confirmation for DB-modifying actions
+  if (parameters.confirmed !== true && parameters.confirmed !== "true") {
+    return {
+      requiresConfirmation: true,
+      action: "create-meal-plan",
+      message: `⚠️ CONFIRMATION REQUIRED: Create meal plan "${parameters.name}" from ${parameters.startDate} to ${parameters.endDate} for user "${user.name || user.email}"? Please ask the user to confirm before proceeding.`,
+      preview: {
+        name: parameters.name,
+        startDate: parameters.startDate,
+        endDate: parameters.endDate,
+        isActive: parameters.isActive !== false,
+        userId: resolvedUserId,
+        userName: user.name || user.email
+      }
+    };
+  }
+
+  const mealPlanId = createId();
+  const now = new Date().toISOString();
+
+  const query = `
+    INSERT INTO "meal-plans" (
+      id, "userId", name, "startDate", "endDate",
+      "isActive", "createdAt", "updatedAt"
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    RETURNING *
+  `;
+
+  const values = [
+    mealPlanId,
+    resolvedUserId,
+    parameters.name,
+    parameters.startDate,
+    parameters.endDate,
+    parameters.isActive !== false, // Default to true
+    now,
+    now
+  ];
+
+  const result = await pool.query(query, values);
+
+  return {
+    mealPlan: result.rows[0],
+    message: `Meal plan "${parameters.name}" created successfully`
+  };
+}
+
+// Handler for adding a meal to a meal plan
+async function addMealToPlan(parameters) {
+  const pool = await getDbPool();
+
+  if (!parameters.mealPlanId || !parameters.mealId || parameters.dayOfWeek === undefined || !parameters.mealTime) {
+    throw new Error("mealPlanId, mealId, dayOfWeek, and mealTime are required");
+  }
+
+  // Validate dayOfWeek (0-6)
+  if (parameters.dayOfWeek < 0 || parameters.dayOfWeek > 6) {
+    throw new Error("dayOfWeek must be between 0 (Monday) and 6 (Sunday)");
+  }
+
+  // Validate mealTime
+  const validMealTimes = ['breakfast', 'lunch', 'dinner', 'snack'];
+  if (!validMealTimes.includes(parameters.mealTime)) {
+    throw new Error(`Invalid mealTime. Must be one of: ${validMealTimes.join(', ')}`);
+  }
+
+  // Verify meal plan exists
+  const mealPlanCheck = await pool.query(
+    'SELECT id, name, "startDate", "endDate" FROM "meal-plans" WHERE id = $1',
+    [parameters.mealPlanId]
+  );
+  if (mealPlanCheck.rows.length === 0) {
+    throw new Error(`Meal plan with ID "${parameters.mealPlanId}" not found.`);
+  }
+  const mealPlan = mealPlanCheck.rows[0];
+
+  // Verify meal exists
+  const mealCheck = await pool.query(
+    'SELECT id, name, category FROM meals WHERE id = $1',
+    [parameters.mealId]
+  );
+  if (mealCheck.rows.length === 0) {
+    throw new Error(`Meal with ID "${parameters.mealId}" not found.`);
+  }
+  const meal = mealCheck.rows[0];
+
+  // Check if this slot already has a meal
+  const existingEntry = await pool.query(
+    'SELECT id, "mealId" FROM "meal-plan-entries" WHERE "mealPlanId" = $1 AND "dayOfWeek" = $2 AND "mealTime" = $3',
+    [parameters.mealPlanId, parameters.dayOfWeek, parameters.mealTime]
+  );
+
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const dayName = dayNames[parameters.dayOfWeek];
+
+  // Always require confirmation for DB-modifying actions
+  if (parameters.confirmed !== true && parameters.confirmed !== "true") {
+    const warnings = existingEntry.rows.length > 0
+      ? `⚠️ This will replace the existing ${parameters.mealTime} for ${dayName}.`
+      : '';
+
+    return {
+      requiresConfirmation: true,
+      action: "add-meal-to-plan",
+      message: `⚠️ CONFIRMATION REQUIRED: Add "${meal.name}" as ${parameters.mealTime} on ${dayName} to meal plan "${mealPlan.name}"? ${warnings} Please ask the user to confirm before proceeding.`,
+      preview: {
+        mealPlanName: mealPlan.name,
+        mealName: meal.name,
+        mealCategory: meal.category,
+        dayOfWeek: parameters.dayOfWeek,
+        dayName: dayName,
+        mealTime: parameters.mealTime,
+        willReplace: existingEntry.rows.length > 0,
+        notes: parameters.notes || null
+      }
+    };
+  }
+
+  const entryId = createId();
+  const now = new Date().toISOString();
+
+  // Use UPSERT to handle replacing existing entries
+  const query = `
+    INSERT INTO "meal-plan-entries" (
+      id, "mealPlanId", "mealId", "dayOfWeek", "mealTime", notes, "createdAt", "updatedAt"
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    ON CONFLICT ("mealPlanId", "dayOfWeek", "mealTime")
+    DO UPDATE SET
+      "mealId" = EXCLUDED."mealId",
+      notes = EXCLUDED.notes,
+      "updatedAt" = EXCLUDED."updatedAt"
+    RETURNING *
+  `;
+
+  const values = [
+    entryId,
+    parameters.mealPlanId,
+    parameters.mealId,
+    parameters.dayOfWeek,
+    parameters.mealTime,
+    parameters.notes || null,
+    now,
+    now
+  ];
+
+  const result = await pool.query(query, values);
+
+  return {
+    entry: result.rows[0],
+    message: `Added "${meal.name}" as ${parameters.mealTime} on ${dayName} to meal plan "${mealPlan.name}"`
+  };
+}
+
 // Main Lambda handler
 exports.handler = async (event) => {
   console.log("Received event:", JSON.stringify(event, null, 2));
@@ -924,6 +1473,29 @@ exports.handler = async (event) => {
         break;
       case "/delete-booking":
         result = await deleteBooking(parameters);
+        break;
+      // Meal management
+      case "/get-meals":
+        result = await getMeals(parameters);
+        break;
+      case "/create-meal":
+        result = await createMeal(parameters);
+        break;
+      case "/update-meal":
+        result = await updateMeal(parameters);
+        break;
+      case "/delete-meal":
+        result = await deleteMeal(parameters);
+        break;
+      // Meal plan management
+      case "/get-meal-plans":
+        result = await getMealPlans(parameters);
+        break;
+      case "/create-meal-plan":
+        result = await createMealPlan(parameters);
+        break;
+      case "/add-meal-to-plan":
+        result = await addMealToPlan(parameters);
         break;
       default:
         throw new Error(`Unknown API path: ${apiPath}`);

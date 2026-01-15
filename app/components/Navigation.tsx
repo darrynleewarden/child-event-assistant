@@ -17,6 +17,7 @@ export function Navigation() {
     { href: "/chat", label: "Chat" },
     { href: "/children", label: "Children" },
     { href: "/events", label: "Events" },
+    { href: "/meals", label: "Meal Planner" },
     { href: "/calendar", label: "Calendar" },
     { href: "/reports", label: "Reports" },
     { href: "/profile", label: "Profile" },

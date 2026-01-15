@@ -144,3 +144,9 @@ variable "db_allowed_cidr_blocks" {
   type        = list(string)
   default     = ["0.0.0.0/0"]
 }
+
+variable "enable_meal_agent" {
+  description = "Enable separate Bedrock agent for meal planning"
+  type        = bool
+  default     = true
+}

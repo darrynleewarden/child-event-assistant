@@ -274,13 +274,13 @@ resource "aws_lambda_permission" "child_event_manager_bedrock_agent_invoke" {
   source_arn    = "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:agent/*"
 }
 
-# Bedrock Agent Action Group
+# Bedrock Agent Action Group (Consolidated to 10 most critical APIs due to AWS limit)
 resource "aws_bedrockagent_agent_action_group" "child_event_manager_database" {
   count                      = var.enable_database ? 1 : 0
   action_group_name          = "database-actions"
   agent_id                   = aws_bedrockagent_agent.child_event_manager_main.id
   agent_version              = "DRAFT"
-  description                = "Action group for querying the PostgreSQL database"
+  description                = "Action group for database operations (10 API limit)"
   skip_resource_in_use_check = true
 
   action_group_executor {
@@ -288,7 +288,7 @@ resource "aws_bedrockagent_agent_action_group" "child_event_manager_database" {
   }
 
   api_schema {
-    payload = file("${path.module}/schemas/database_actions.json")
+    payload = file("${path.module}/schemas/consolidated_actions.json")
   }
 }
 
