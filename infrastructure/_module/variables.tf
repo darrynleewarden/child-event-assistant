@@ -36,7 +36,7 @@ variable "foundation_model" {
 variable "location_foundation_model" {
   description = "The foundation model to use for the location agent"
   type        = string
-  default     = "anthropic.claude-opus-4-5-20251101-v1:0"
+  default     = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 }
 
 variable "idle_session_ttl" {
