@@ -33,6 +33,12 @@ variable "foundation_model" {
   default     = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 }
 
+variable "location_foundation_model" {
+  description = "The foundation model to use for the location agent"
+  type        = string
+  default     = "anthropic.claude-opus-4-5-20251101-v1:0"
+}
+
 variable "idle_session_ttl" {
   description = "Idle session TTL in seconds"
   type        = number
@@ -147,6 +153,12 @@ variable "db_allowed_cidr_blocks" {
 
 variable "enable_meal_agent" {
   description = "Enable separate Bedrock agent for meal planning"
+  type        = bool
+  default     = true
+}
+
+variable "enable_location_agent" {
+  description = "Enable separate Bedrock agent for location suburb analysis"
   type        = bool
   default     = true
 }

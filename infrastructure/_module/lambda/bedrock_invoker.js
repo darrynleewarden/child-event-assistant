@@ -11,6 +11,40 @@ const generateSessionId = () => {
   return `session-${crypto.randomUUID()}`;
 };
 
+// Determine which agent to use based on message content
+const determineAgent = (message) => {
+  const lowercaseMessage = message.toLowerCase();
+
+  // Check for location keywords
+  if (lowercaseMessage.includes('location') ||
+    lowercaseMessage.includes('real estate') ||
+    lowercaseMessage.includes('suburb')) {
+    return {
+      agentId: process.env.LOCATION_AGENT_ID,
+      agentAliasId: process.env.LOCATION_AGENT_ALIAS_ID,
+      agentType: 'location'
+    };
+  }
+
+  // Check for meal planning keywords
+  if (lowercaseMessage.includes('meal') ||
+    lowercaseMessage.includes('recipe') ||
+    lowercaseMessage.includes('menu')) {
+    return {
+      agentId: process.env.MEAL_AGENT_ID,
+      agentAliasId: process.env.MEAL_AGENT_ALIAS_ID,
+      agentType: 'meal'
+    };
+  }
+
+  // Default to main agent
+  return {
+    agentId: process.env.AGENT_ID,
+    agentAliasId: process.env.AGENT_ALIAS_ID,
+    agentType: 'main'
+  };
+};
+
 exports.handler = async (event) => {
   console.log('Event:', JSON.stringify(event, null, 2));
 
@@ -35,6 +69,10 @@ exports.handler = async (event) => {
     // Use provided session ID or generate a new one
     // This ensures conversation context is maintained across requests
     const sessionId = providedSessionId || generateSessionId();
+
+    // Determine which agent to route to
+    const agent = determineAgent(message);
+    console.log(`Routing to ${agent.agentType} agent`);
 
     // Build input text with user context prepended (invisible to the user but available to the agent)
     let inputText = message;
@@ -66,8 +104,8 @@ exports.handler = async (event) => {
 
     // Invoke Bedrock Agent with session context
     const command = new InvokeAgentCommand({
-      agentId: process.env.AGENT_ID,
-      agentAliasId: process.env.AGENT_ALIAS_ID,
+      agentId: agent.agentId,
+      agentAliasId: agent.agentAliasId,
       sessionId: sessionId,
       inputText: inputText,
       enableTrace: false,
@@ -97,6 +135,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         message: completion,
         sessionId: sessionId, // Return the session ID for the client to reuse
+        agentType: agent.agentType, // Return which agent handled the request
       }),
     };
   } catch (error) {

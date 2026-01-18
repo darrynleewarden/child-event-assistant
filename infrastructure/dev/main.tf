@@ -48,6 +48,21 @@ module "bedrock_agent" {
     - create-booking: Create a booking/appointment (requires: name, date, time, userId AND userEmail from context)
     - delete-booking: Remove a booking (requires: bookingId)
 
+    HEADCOUNT operations:
+    READ operations:
+    - get-headcounts: Retrieve headcount records (filter by date, optional limit)
+
+    WRITE operations (require confirmation):
+    - create-headcount: Create a new headcount by specifying child names (requires: childNames array, userId AND userEmail from context)
+    - delete-headcount: Remove a headcount (requires: headcountId)
+
+    When creating headcounts:
+    - Users can say child names like "Emma, Liam, and Sophia"
+    - Pass an array of first names in childNames parameter
+    - System automatically matches names to child IDs
+    - Shows which children were found and not found before confirmation
+    - Optionally specify date/time and notes
+
     MEAL PLANNING operations:
     READ operations:
     - get-meals: Retrieve meals (filter by user, category: breakfast/lunch/dinner/snack, or template status)
@@ -132,6 +147,12 @@ module "bedrock_agent" {
   # IMPORTANT: Restrict this to your IP address for security
   # You can find your IP at https://whatismyipaddress.com/
   db_allowed_cidr_blocks = ["0.0.0.0/0"] # TODO: Replace with your IP/32 for security
+
+  # =============================================================================
+  # Specialized Agents
+  # =============================================================================
+  enable_meal_agent     = true
+  enable_location_agent = true
 
   tags = {
     Application = "ChildEventManager"

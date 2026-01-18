@@ -151,3 +151,32 @@ output "meal_agent_alias_arn" {
   description = "The ARN of the meal planner agent alias"
   value       = var.enable_meal_agent ? aws_bedrockagent_agent_alias.child_event_manager_meal_planner[0].agent_alias_arn : null
 }
+
+# =============================================================================
+# Location Agent Outputs
+# =============================================================================
+
+output "location_agent_id" {
+  description = "The ID of the Location Bedrock agent"
+  value       = var.enable_location_agent ? aws_bedrockagent_agent.child_event_manager_location[0].id : null
+}
+
+output "location_agent_arn" {
+  description = "The ARN of the Location Bedrock agent"
+  value       = var.enable_location_agent ? aws_bedrockagent_agent.child_event_manager_location[0].agent_arn : null
+}
+
+output "location_agent_name" {
+  description = "The name of the Location Bedrock agent"
+  value       = var.enable_location_agent ? aws_bedrockagent_agent.child_event_manager_location[0].agent_name : null
+}
+
+output "location_agent_alias_id" {
+  description = "The ID of the location agent alias"
+  value       = var.enable_location_agent ? aws_bedrockagent_agent_alias.child_event_manager_location[0].agent_alias_id : null
+}
+
+output "location_agent_alias_arn" {
+  description = "The ARN of the location agent alias"
+  value       = var.enable_location_agent ? aws_bedrockagent_agent_alias.child_event_manager_location[0].agent_alias_arn : null
+}

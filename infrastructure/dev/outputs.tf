@@ -81,3 +81,27 @@ output "database_url_template" {
   description = "Database URL template (retrieve password from Secrets Manager)"
   value       = module.bedrock_agent.database_url
 }
+
+# =============================================================================
+# Specialized Agents Outputs
+# =============================================================================
+
+output "meal_agent_id" {
+  description = "The ID of the Meal Planner agent"
+  value       = module.bedrock_agent.meal_agent_id
+}
+
+output "meal_agent_alias_id" {
+  description = "The alias ID of the Meal Planner agent"
+  value       = module.bedrock_agent.meal_agent_alias_id
+}
+
+output "location_agent_id" {
+  description = "The ID of the Location agent"
+  value       = module.bedrock_agent.location_agent_id
+}
+
+output "location_agent_alias_id" {
+  description = "The alias ID of the Location agent"
+  value       = module.bedrock_agent.location_agent_alias_id
+}
