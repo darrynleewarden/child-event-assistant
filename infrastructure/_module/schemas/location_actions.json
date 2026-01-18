@@ -1,0 +1,460 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Location Suburb Data Management API",
+        "version": "3.0.0",
+        "description": "API for researching and managing Australian suburb location data including online research, property prices, rental prices, and vacancy rates"
+    },
+    "paths": {
+        "/search-location-data": {
+            "post": {
+                "summary": "Search online sources for suburb market data",
+                "description": "Searches multiple Australian property websites for current market data about a suburb including prices, rentals, and vacancy rates",
+                "operationId": "searchLocationData",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "suburbName",
+                                    "state"
+                                ],
+                                "properties": {
+                                    "suburbName": {
+                                        "type": "string",
+                                        "description": "The name of the Australian suburb to research"
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "description": "Australian state code (NSW, VIC, QLD, WA, SA, TAS, NT, ACT)"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Online research completed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SearchResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/get-location-data": {
+            "post": {
+                "summary": "Get saved location data for the user",
+                "description": "Retrieves location data that the user has previously saved to their database",
+                "operationId": "getLocationData",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "userId",
+                                    "userEmail"
+                                ],
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "description": "The user's ID from SYSTEM CONTEXT"
+                                    },
+                                    "userEmail": {
+                                        "type": "string",
+                                        "description": "The user's email from SYSTEM CONTEXT"
+                                    },
+                                    "suburbName": {
+                                        "type": "string",
+                                        "description": "Optional: Filter by suburb name"
+                                    },
+                                    "isFavorite": {
+                                        "type": "boolean",
+                                        "description": "Optional: Filter by favorite status"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Location data retrieved successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LocationDataResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/save-location-data": {
+            "post": {
+                "summary": "Save new location data",
+                "description": "Saves new suburb location data to the database. Requires confirmation.",
+                "operationId": "saveLocationData",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "userId",
+                                    "userEmail",
+                                    "suburbName",
+                                    "state"
+                                ],
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "description": "The user's ID from SYSTEM CONTEXT"
+                                    },
+                                    "userEmail": {
+                                        "type": "string",
+                                        "description": "The user's email from SYSTEM CONTEXT"
+                                    },
+                                    "suburbName": {
+                                        "type": "string",
+                                        "description": "The name of the suburb"
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "description": "Australian state code (NSW, VIC, QLD, WA, SA, TAS, NT, ACT)"
+                                    },
+                                    "medianHousePrice": {
+                                        "type": "number",
+                                        "description": "Median house price in AUD"
+                                    },
+                                    "medianUnitPrice": {
+                                        "type": "number",
+                                        "description": "Median unit/apartment price in AUD"
+                                    },
+                                    "rentalPriceHouse": {
+                                        "type": "number",
+                                        "description": "Weekly rental price for houses in AUD"
+                                    },
+                                    "rentalPriceUnit": {
+                                        "type": "number",
+                                        "description": "Weekly rental price for units in AUD"
+                                    },
+                                    "vacancyRate": {
+                                        "type": "number",
+                                        "description": "Rental vacancy rate as a percentage"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "description": "Optional user notes about this suburb"
+                                    },
+                                    "isFavorite": {
+                                        "type": "boolean",
+                                        "description": "Whether this is a favorite suburb"
+                                    },
+                                    "confirmed": {
+                                        "type": "boolean",
+                                        "description": "Set to true after user confirms the preview"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Location data saved or preview returned",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OperationResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/update-location-data": {
+            "post": {
+                "summary": "Update existing location data",
+                "description": "Updates saved location data. Requires confirmation.",
+                "operationId": "updateLocationData",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "userId",
+                                    "userEmail",
+                                    "locationId"
+                                ],
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "description": "The user's ID from SYSTEM CONTEXT"
+                                    },
+                                    "userEmail": {
+                                        "type": "string",
+                                        "description": "The user's email from SYSTEM CONTEXT"
+                                    },
+                                    "locationId": {
+                                        "type": "string",
+                                        "description": "The ID of the location data to update"
+                                    },
+                                    "suburbName": {
+                                        "type": "string",
+                                        "description": "New suburb name"
+                                    },
+                                    "state": {
+                                        "type": "string",
+                                        "description": "New state code"
+                                    },
+                                    "medianHousePrice": {
+                                        "type": "number",
+                                        "description": "New median house price"
+                                    },
+                                    "medianUnitPrice": {
+                                        "type": "number",
+                                        "description": "New median unit price"
+                                    },
+                                    "rentalPriceHouse": {
+                                        "type": "number",
+                                        "description": "New house rental price"
+                                    },
+                                    "rentalPriceUnit": {
+                                        "type": "number",
+                                        "description": "New unit rental price"
+                                    },
+                                    "vacancyRate": {
+                                        "type": "number",
+                                        "description": "New vacancy rate"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "description": "New notes"
+                                    },
+                                    "isFavorite": {
+                                        "type": "boolean",
+                                        "description": "New favorite status"
+                                    },
+                                    "confirmed": {
+                                        "type": "boolean",
+                                        "description": "Set to true after user confirms"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Location data updated or preview returned",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OperationResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/delete-location-data": {
+            "post": {
+                "summary": "Delete saved location data",
+                "description": "Removes location data from the database. Requires confirmation.",
+                "operationId": "deleteLocationData",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "userId",
+                                    "userEmail",
+                                    "locationId"
+                                ],
+                                "properties": {
+                                    "userId": {
+                                        "type": "string",
+                                        "description": "The user's ID from SYSTEM CONTEXT"
+                                    },
+                                    "userEmail": {
+                                        "type": "string",
+                                        "description": "The user's email from SYSTEM CONTEXT"
+                                    },
+                                    "locationId": {
+                                        "type": "string",
+                                        "description": "The ID of the location data to delete"
+                                    },
+                                    "confirmed": {
+                                        "type": "boolean",
+                                        "description": "Set to true after user confirms"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Location data deleted or preview returned",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OperationResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "SearchResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "suburbName": {
+                        "type": "string"
+                    },
+                    "state": {
+                        "type": "string"
+                    },
+                    "medianHousePrice": {
+                        "type": "number"
+                    },
+                    "medianUnitPrice": {
+                        "type": "number"
+                    },
+                    "rentalPriceHouse": {
+                        "type": "number"
+                    },
+                    "rentalPriceUnit": {
+                        "type": "number"
+                    },
+                    "vacancyRate": {
+                        "type": "number"
+                    },
+                    "dataSource": {
+                        "type": "string",
+                        "description": "Which sources were used to compile this data"
+                    },
+                    "lastUpdated": {
+                        "type": "string"
+                    },
+                    "insights": {
+                        "type": "string",
+                        "description": "Market insights and trends"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "LocationDataResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "locationData": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "suburbName": {
+                                    "type": "string"
+                                },
+                                "state": {
+                                    "type": "string"
+                                },
+                                "medianHousePrice": {
+                                    "type": "number"
+                                },
+                                "medianUnitPrice": {
+                                    "type": "number"
+                                },
+                                "rentalPriceHouse": {
+                                    "type": "number"
+                                },
+                                "rentalPriceUnit": {
+                                    "type": "number"
+                                },
+                                "vacancyRate": {
+                                    "type": "number"
+                                },
+                                "notes": {
+                                    "type": "string"
+                                },
+                                "isFavorite": {
+                                    "type": "boolean"
+                                },
+                                "createdAt": {
+                                    "type": "string"
+                                },
+                                "updatedAt": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "count": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "OperationResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "needsConfirmation": {
+                        "type": "boolean"
+                    },
+                    "preview": {
+                        "type": "object"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "warning": {
+                        "type": "string"
+                    },
+                    "locationData": {
+                        "type": "object"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}
