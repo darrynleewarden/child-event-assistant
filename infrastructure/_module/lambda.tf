@@ -93,10 +93,10 @@ resource "aws_lambda_function" "child_event_manager_location_handler" {
 
 # Lambda Permission for Bedrock Agent to invoke Location handler
 resource "aws_lambda_permission" "child_event_manager_location_bedrock" {
-  count         = var.enable_location_agent ? 1 : 0
+  count         = var.enable_location_agent && var.enable_database ? 1 : 0
   statement_id  = "AllowLocationAgentInvoke"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.child_event_manager_location_handler[0].function_name
+  function_name = aws_lambda_function.child_event_manager_database_handler[0].function_name
   principal     = "bedrock.amazonaws.com"
   source_arn    = aws_bedrockagent_agent.child_event_manager_location[0].agent_arn
 }
