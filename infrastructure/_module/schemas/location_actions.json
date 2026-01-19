@@ -162,6 +162,18 @@
                                         "type": "boolean",
                                         "description": "Whether this is a favorite suburb"
                                     },
+                                    "cityDistrict": {
+                                        "type": "string",
+                                        "description": "The city or district that the suburb belongs to (e.g., Sydney City, Greater Melbourne, Brisbane North)"
+                                    },
+                                    "schools": {
+                                        "type": "string",
+                                        "description": "Detailed information about nearby primary and high schools including their rankings compared to other schools in the area, distances, and school types"
+                                    },
+                                    "demographicLifestyle": {
+                                        "type": "string",
+                                        "description": "Comprehensive demographic and lifestyle information including socioeconomic factors, community characteristics, transport, amenities, and local culture"
+                                    },
                                     "confirmed": {
                                         "type": "boolean",
                                         "description": "Set to true after user confirms the preview"
@@ -249,6 +261,18 @@
                                     "isFavorite": {
                                         "type": "boolean",
                                         "description": "New favorite status"
+                                    },
+                                    "cityDistrict": {
+                                        "type": "string",
+                                        "description": "Updated city or district information"
+                                    },
+                                    "schools": {
+                                        "type": "string",
+                                        "description": "Updated school information"
+                                    },
+                                    "demographicLifestyle": {
+                                        "type": "string",
+                                        "description": "Updated demographic and lifestyle information"
                                     },
                                     "confirmed": {
                                         "type": "boolean",
@@ -411,6 +435,15 @@
                                 },
                                 "isFavorite": {
                                     "type": "boolean"
+                                },
+                                "cityDistrict": {
+                                    "type": "string"
+                                },
+                                "schools": {
+                                    "type": "string"
+                                },
+                                "demographicLifestyle": {
+                                    "type": "string"
                                 },
                                 "createdAt": {
                                     "type": "string"

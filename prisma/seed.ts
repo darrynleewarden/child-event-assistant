@@ -1,26 +1,20 @@
 import "dotenv/config"
 import { PrismaClient } from "@prisma/client"
-import { PrismaPg } from "@prisma/adapter-pg"
-import { Pool } from "pg"
 import * as bcrypt from "bcryptjs"
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL })
-const adapter = new PrismaPg(pool)
-const prisma = new PrismaClient({ adapter })
+const prisma = new PrismaClient()
 
 async function main() {
   console.log("Starting database seed...")
 
-  // Create a test user
-  const hashedPassword = await bcrypt.hash("password123", 10)
-
+  // Create your user
   const user = await prisma.user.upsert({
-    where: { email: "test@example.com" },
+    where: { email: "drleewarden@gmail.com" },
     update: {},
     create: {
-      email: "test@example.com",
-      name: "Test User",
-      password: hashedPassword,
+      id: "cmkg3t2jy000sxujpfdxbcqpd",
+      email: "drleewarden@gmail.com",
+      name: "darryn lee-warden",
     },
   })
 

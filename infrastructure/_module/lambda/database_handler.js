@@ -1464,9 +1464,10 @@ async function getLocationData(parameters) {
 
   let query = `
     SELECT
-      id, "userId", "suburbName", state, "medianHousePrice", "medianUnitPrice",
+      id, "userId", "suburbName", state, "cityDistrict", "schools",
+      "medianHousePrice", "medianUnitPrice",
       "rentalPriceHouse", "rentalPriceUnit", "vacancyRate", notes, "isFavorite",
-      "createdAt", "updatedAt"
+      "demographicLifestyle", "createdAt", "updatedAt"
     FROM "location-data"
     WHERE "userId" = $1
   `;
@@ -1501,6 +1502,8 @@ async function saveLocationData(parameters) {
     userEmail,
     suburbName,
     state,
+    cityDistrict,
+    schools,
     medianHousePrice,
     medianUnitPrice,
     rentalPriceHouse,
@@ -1508,6 +1511,7 @@ async function saveLocationData(parameters) {
     vacancyRate,
     notes,
     isFavorite,
+    demographicLifestyle,
     confirmed
   } = parameters;
 
@@ -1549,13 +1553,16 @@ async function saveLocationData(parameters) {
         action: "Save location data",
         suburb: suburbName,
         state: state,
+        cityDistrict: cityDistrict || null,
+        schools: schools || null,
         medianHousePrice: medianHousePrice || 0,
         medianUnitPrice: medianUnitPrice || 0,
         rentalPriceHouse: rentalPriceHouse || 0,
         rentalPriceUnit: rentalPriceUnit || 0,
         vacancyRate: vacancyRate || 0,
         notes: notes || null,
-        isFavorite: isFavorite || false
+        isFavorite: isFavorite || false,
+        demographicLifestyle: demographicLifestyle || null
       },
       message: "Please confirm you want to save this location data."
     };
@@ -1567,16 +1574,19 @@ async function saveLocationData(parameters) {
 
   const result = await pool.query(
     `INSERT INTO "location-data"
-      (id, "userId", "suburbName", state, "medianHousePrice", "medianUnitPrice",
+      (id, "userId", "suburbName", state, "cityDistrict", "schools",
+       "medianHousePrice", "medianUnitPrice",
        "rentalPriceHouse", "rentalPriceUnit", "vacancyRate", notes, "isFavorite",
-       "createdAt", "updatedAt")
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       "demographicLifestyle", "createdAt", "updatedAt")
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
     RETURNING *`,
     [
       id,
       user.id,
       suburbName,
       state,
+      cityDistrict || null,
+      schools || null,
       medianHousePrice || 0,
       medianUnitPrice || 0,
       rentalPriceHouse || 0,
@@ -1584,6 +1594,7 @@ async function saveLocationData(parameters) {
       vacancyRate || 0,
       notes || null,
       isFavorite || false,
+      demographicLifestyle || null,
       now,
       now
     ]
@@ -1605,6 +1616,8 @@ async function updateLocationData(parameters) {
     locationId,
     suburbName,
     state,
+    cityDistrict,
+    schools,
     medianHousePrice,
     medianUnitPrice,
     rentalPriceHouse,
@@ -1612,6 +1625,7 @@ async function updateLocationData(parameters) {
     vacancyRate,
     notes,
     isFavorite,
+    demographicLifestyle,
     confirmed
   } = parameters;
 
@@ -1650,6 +1664,8 @@ async function updateLocationData(parameters) {
     const updates = {};
     if (suburbName !== undefined) updates.suburbName = suburbName;
     if (state !== undefined) updates.state = state;
+    if (cityDistrict !== undefined) updates.cityDistrict = cityDistrict;
+    if (schools !== undefined) updates.schools = schools;
     if (medianHousePrice !== undefined) updates.medianHousePrice = medianHousePrice;
     if (medianUnitPrice !== undefined) updates.medianUnitPrice = medianUnitPrice;
     if (rentalPriceHouse !== undefined) updates.rentalPriceHouse = rentalPriceHouse;
@@ -1657,6 +1673,7 @@ async function updateLocationData(parameters) {
     if (vacancyRate !== undefined) updates.vacancyRate = vacancyRate;
     if (notes !== undefined) updates.notes = notes;
     if (isFavorite !== undefined) updates.isFavorite = isFavorite;
+    if (demographicLifestyle !== undefined) updates.demographicLifestyle = demographicLifestyle;
 
     return {
       success: true,
@@ -1666,13 +1683,16 @@ async function updateLocationData(parameters) {
         current: {
           suburb: current.suburbName,
           state: current.state,
+          cityDistrict: current.cityDistrict,
+          schools: current.schools,
           medianHousePrice: current.medianHousePrice,
           medianUnitPrice: current.medianUnitPrice,
           rentalPriceHouse: current.rentalPriceHouse,
           rentalPriceUnit: current.rentalPriceUnit,
           vacancyRate: current.vacancyRate,
           notes: current.notes,
-          isFavorite: current.isFavorite
+          isFavorite: current.isFavorite,
+          demographicLifestyle: current.demographicLifestyle
         },
         updates: updates
       },
@@ -1692,6 +1712,14 @@ async function updateLocationData(parameters) {
   if (state !== undefined) {
     updateFields.push(`state = $${paramIndex++}`);
     updateValues.push(state);
+  }
+  if (cityDistrict !== undefined) {
+    updateFields.push(`"cityDistrict" = $${paramIndex++}`);
+    updateValues.push(cityDistrict);
+  }
+  if (schools !== undefined) {
+    updateFields.push(`schools = $${paramIndex++}`);
+    updateValues.push(schools);
   }
   if (medianHousePrice !== undefined) {
     updateFields.push(`"medianHousePrice" = $${paramIndex++}`);
@@ -1720,6 +1748,10 @@ async function updateLocationData(parameters) {
   if (isFavorite !== undefined) {
     updateFields.push(`"isFavorite" = $${paramIndex++}`);
     updateValues.push(isFavorite);
+  }
+  if (demographicLifestyle !== undefined) {
+    updateFields.push(`"demographicLifestyle" = $${paramIndex++}`);
+    updateValues.push(demographicLifestyle);
   }
 
   if (updateFields.length === 0) {

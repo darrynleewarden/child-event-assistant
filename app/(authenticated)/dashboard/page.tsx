@@ -3,6 +3,7 @@ import Link from "next/link"
 
 export default async function DashboardPage() {
   const session = await auth()
+  const showSuburbProfile = session?.user?.email === "drleewarden@gmail.com"
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -53,6 +54,20 @@ export default async function DashboardPage() {
               Review all logged events and activities.
             </p>
           </Link>
+
+          {showSuburbProfile && (
+            <Link
+              href="/suburb-profile"
+              className="rounded-lg bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+            >
+              <h2 className="text-lg font-semibold text-gray-900">
+                Suburb Profiles
+              </h2>
+              <p className="mt-2 text-sm text-gray-600">
+                View saved suburb research including demographics and lifestyle data.
+              </p>
+            </Link>
+          )}
         </div>
       </div>
     </div>

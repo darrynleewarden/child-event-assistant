@@ -184,20 +184,23 @@ model ChildMealPlan {
 }
 
 model LocationData {
-  id               String   @id @default(cuid())
-  userId           String
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  suburbName       String
-  state            String // NSW, VIC, QLD, WA, SA, TAS, NT, ACT
-  medianHousePrice Float
-  medianUnitPrice  Float
-  rentalPriceHouse Float // Weekly rental price
-  rentalPriceUnit  Float // Weekly rental price
-  vacancyRate      Float // Percentage
-  notes            String? // User notes about this suburb
-  isFavorite       Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  suburbName           String
+  state                String // NSW, VIC, QLD, WA, SA, TAS, NT, ACT
+  cityDistrict         String? // City or district
+  schools              String? // Information about schools in the area
+  medianHousePrice     Float
+  medianUnitPrice      Float
+  rentalPriceHouse     Float // Weekly rental price
+  rentalPriceUnit      Float // Weekly rental price
+  vacancyRate          Float // Percentage
+  notes                String? // User notes about this suburb
+  isFavorite           Boolean  @default(false)
+  demographicLifestyle String? // Demographic and lifestyle information
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@unique([userId, suburbName, state])
   @@map("location-data")
