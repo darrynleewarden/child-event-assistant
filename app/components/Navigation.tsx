@@ -3,25 +3,35 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { signOut } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 import { useAutoSpeak } from "@/app/contexts/AutoSpeakContext"
 import { Logo } from "@/app/components/Logo"
 
 export function Navigation() {
   const pathname = usePathname()
   const { autoSpeak, toggleAutoSpeak } = useAutoSpeak()
+  const { data: session } = useSession()
   const isOnChatPage = pathname === "/chat"
 
-  const navItems = [
+  const allNavItems = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/chat", label: "Chat" },
     { href: "/children", label: "Children" },
     { href: "/events", label: "Events" },
     { href: "/meals", label: "Meal Planner" },
+    { href: "/suburb-profile", label: "Suburbs", restrictedTo: ["drleewarden@gmail.com"] },
     { href: "/calendar", label: "Calendar" },
     { href: "/reports", label: "Reports" },
     { href: "/profile", label: "Profile" },
   ]
+
+  // Filter nav items based on user email
+  const navItems = allNavItems.filter((item) => {
+    if (item.restrictedTo) {
+      return session?.user?.email && item.restrictedTo.includes(session.user.email)
+    }
+    return true
+  })
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/" })

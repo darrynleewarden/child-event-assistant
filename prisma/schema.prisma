@@ -25,6 +25,8 @@ model User {
   bookings      Booking[]
   meals         Meal[]
   mealPlans     MealPlan[]
+  locationData  LocationData[]
+  headcounts    Headcount[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -67,7 +69,7 @@ model VerificationToken {
 }
 
 model ChildDetails {
-  id          String          @id @default(cuid())
+  id          String           @id @default(cuid())
   firstName   String
   lastName    String?
   dateOfBirth DateTime
@@ -75,13 +77,16 @@ model ChildDetails {
   allergies   String?
   medicalInfo String?
   notes       String?
+  signedIn    Boolean          @default(false)
+  bookedIn    Boolean          @default(false)
   userId      String
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   events      ChildEvent[]
   bookings    Booking[]
   mealPlans   ChildMealPlan[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  headcounts  HeadcountChild[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@map("child-details")
 }
@@ -120,11 +125,11 @@ model Meal {
   user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   name            String
   description     String?
-  ingredients     String?         // JSON array
-  category        String          // breakfast, lunch, dinner, snack
+  ingredients     String? // JSON array
+  category        String // breakfast, lunch, dinner, snack
   isTemplate      Boolean         @default(false)
-  allergyInfo     String?         // JSON array
-  prepTime        Int?            // in minutes
+  allergyInfo     String? // JSON array
+  prepTime        Int? // in minutes
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   mealPlanEntries MealPlanEntry[]
@@ -137,8 +142,8 @@ model MealPlan {
   userId     String
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   name       String
-  startDate  DateTime        // Monday of the week
-  endDate    DateTime        // Sunday of the week
+  startDate  DateTime // Monday of the week
+  endDate    DateTime // Sunday of the week
   isActive   Boolean         @default(true)
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
@@ -154,8 +159,8 @@ model MealPlanEntry {
   mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
   mealId     String
   meal       Meal     @relation(fields: [mealId], references: [id], onDelete: Restrict)
-  dayOfWeek  Int      // 0-6 (Monday-Sunday)
-  mealTime   String   // breakfast, lunch, dinner, snack
+  dayOfWeek  Int // 0-6 (Monday-Sunday)
+  mealTime   String // breakfast, lunch, dinner, snack
   notes      String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -170,10 +175,58 @@ model ChildMealPlan {
   child       ChildDetails @relation(fields: [childId], references: [id], onDelete: Cascade)
   mealPlanId  String
   mealPlan    MealPlan     @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
-  preferences String?      // JSON array
+  preferences String? // JSON array
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   @@unique([childId, mealPlanId])
   @@map("child-meal-plans")
+}
+
+model LocationData {
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  suburbName           String
+  state                String // NSW, VIC, QLD, WA, SA, TAS, NT, ACT
+  cityDistrict         String? // City or district
+  schools              String? // Information about schools in the area
+  medianHousePrice     Float
+  medianUnitPrice      Float
+  rentalPriceHouse     Float // Weekly rental price
+  rentalPriceUnit      Float // Weekly rental price
+  vacancyRate          Float // Percentage
+  notes                String? // User notes about this suburb
+  isFavorite           Boolean  @default(false)
+  demographicLifestyle String? // Demographic and lifestyle information
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@unique([userId, suburbName, state])
+  @@map("location-data")
+}
+
+model Headcount {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime         @default(now()) // Date and time of headcount
+  notes     String? // Optional notes about this headcount
+  children  HeadcountChild[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@map("headcounts")
+}
+
+model HeadcountChild {
+  id          String       @id @default(cuid())
+  headcountId String
+  headcount   Headcount    @relation(fields: [headcountId], references: [id], onDelete: Cascade)
+  childId     String
+  child       ChildDetails @relation(fields: [childId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+
+  @@unique([headcountId, childId]) // Prevent duplicate children in same headcount
+  @@map("headcount-children")
 }

@@ -1391,6 +1391,690 @@ async function addMealToPlan(parameters) {
   };
 }
 
+// ============================================================================
+// LOCATION DATA HANDLERS
+// ============================================================================
+
+/**
+ * Search online sources for suburb market data
+ * This function searches multiple Australian property websites
+ */
+async function searchLocationData(parameters) {
+  const { suburbName, state } = parameters;
+
+  try {
+    console.log(`Searching online for ${suburbName}, ${state}`);
+
+    // Note: This is using Claude's web search capability through the Bedrock agent
+    // The agent has access to search online sources and will compile the data
+    // In a production environment, you would integrate with specific APIs:
+    // - Domain.com.au API
+    // - REA API (realestate.com.au)
+    // - CoreLogic API
+    // - SQM Research API
+
+    // For now, return a structured response that guides the agent to search
+    return {
+      success: true,
+      suburbName,
+      state,
+      searchInstructions: `Please search the following Australian property websites for current market data about ${suburbName}, ${state}:
+      
+1. realestate.com.au - Search for "${suburbName} ${state}" property market data
+2. domain.com.au - Look up suburb profile for ${suburbName}
+3. www.yourinvestmentpropertymag.com.au - Investment analysis for ${suburbName}
+4. www.prd.com.au - PRD Real Estate market reports for ${suburbName}
+5. www.openagent.com.au - Suburb profile and statistics for ${suburbName}
+6. www.realestateinvestar.com.au - Investment data for ${suburbName}
+
+Please compile the following data:
+- Median house price (AUD)
+- Median unit/apartment price (AUD)
+- Weekly rental price for houses (AUD)
+- Weekly rental price for units (AUD)
+- Rental vacancy rate (%)
+- Any market trends or insights
+
+After gathering this data, present it to the user and offer to save it to their database.`,
+      message: `I'll search multiple Australian property sources for current market data about ${suburbName}, ${state}. This includes realestate.com.au, domain.com.au, and other authoritative property websites.`
+    };
+
+  } catch (error) {
+    console.error('Error in searchLocationData:', error);
+    return {
+      success: false,
+      error: `Failed to search for ${suburbName}, ${state}: ${error.message}`,
+      message: `I encountered an error while trying to search for ${suburbName}. Please try again.`
+    };
+  }
+}
+
+// Handler for getting location data for a user
+async function getLocationData(parameters) {
+  const pool = await getDbPool();
+  const { userId, userEmail, suburbName, isFavorite } = parameters;
+
+  const user = await resolveUser(pool, userId, userEmail);
+  if (!user) {
+    return {
+      success: false,
+      error: `User not found with ${userId ? `ID: ${userId}` : `email: ${userEmail}`}`
+    };
+  }
+
+  let query = `
+    SELECT
+      id, "userId", "suburbName", state, "cityDistrict", "schools",
+      "medianHousePrice", "medianUnitPrice",
+      "rentalPriceHouse", "rentalPriceUnit", "vacancyRate", notes, "isFavorite",
+      "demographicLifestyle", "createdAt", "updatedAt"
+    FROM "location-data"
+    WHERE "userId" = $1
+  `;
+  const queryParams = [user.id];
+
+  if (suburbName) {
+    queryParams.push(suburbName.toLowerCase());
+    query += ` AND LOWER("suburbName") = $${queryParams.length}`;
+  }
+
+  if (isFavorite !== undefined) {
+    queryParams.push(isFavorite);
+    query += ` AND "isFavorite" = $${queryParams.length}`;
+  }
+
+  query += ` ORDER BY "createdAt" DESC`;
+
+  const result = await pool.query(query, queryParams);
+
+  return {
+    success: true,
+    locationData: result.rows,
+    count: result.rows.length
+  };
+}
+
+// Handler for saving new location data
+async function saveLocationData(parameters) {
+  const pool = await getDbPool();
+  const {
+    userId,
+    userEmail,
+    suburbName,
+    state,
+    cityDistrict,
+    schools,
+    medianHousePrice,
+    medianUnitPrice,
+    rentalPriceHouse,
+    rentalPriceUnit,
+    vacancyRate,
+    notes,
+    isFavorite,
+    demographicLifestyle,
+    confirmed
+  } = parameters;
+
+  // Validation
+  if (!suburbName || !state) {
+    return {
+      success: false,
+      error: "suburbName and state are required"
+    };
+  }
+
+  const user = await resolveUser(pool, userId, userEmail);
+  if (!user) {
+    return {
+      success: false,
+      error: `User not found with ${userId ? `ID: ${userId}` : `email: ${userEmail}`}`
+    };
+  }
+
+  // Check if location already exists for this user
+  const existingCheck = await pool.query(
+    'SELECT id FROM "location-data" WHERE "userId" = $1 AND LOWER("suburbName") = $2 AND state = $3',
+    [user.id, suburbName.toLowerCase(), state]
+  );
+
+  if (existingCheck.rows.length > 0) {
+    return {
+      success: false,
+      error: `Location data for ${suburbName}, ${state} already exists. Use update-location-data to modify it.`
+    };
+  }
+
+  // Show preview if not confirmed
+  if (!confirmed) {
+    return {
+      success: true,
+      needsConfirmation: true,
+      preview: {
+        action: "Save location data",
+        suburb: suburbName,
+        state: state,
+        cityDistrict: cityDistrict || null,
+        schools: schools || null,
+        medianHousePrice: medianHousePrice || 0,
+        medianUnitPrice: medianUnitPrice || 0,
+        rentalPriceHouse: rentalPriceHouse || 0,
+        rentalPriceUnit: rentalPriceUnit || 0,
+        vacancyRate: vacancyRate || 0,
+        notes: notes || null,
+        isFavorite: isFavorite || false,
+        demographicLifestyle: demographicLifestyle || null
+      },
+      message: "Please confirm you want to save this location data."
+    };
+  }
+
+  // Create location data
+  const id = createId();
+  const now = new Date().toISOString();
+
+  const result = await pool.query(
+    `INSERT INTO "location-data"
+      (id, "userId", "suburbName", state, "cityDistrict", "schools",
+       "medianHousePrice", "medianUnitPrice",
+       "rentalPriceHouse", "rentalPriceUnit", "vacancyRate", notes, "isFavorite",
+       "demographicLifestyle", "createdAt", "updatedAt")
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+    RETURNING *`,
+    [
+      id,
+      user.id,
+      suburbName,
+      state,
+      cityDistrict || null,
+      schools || null,
+      medianHousePrice || 0,
+      medianUnitPrice || 0,
+      rentalPriceHouse || 0,
+      rentalPriceUnit || 0,
+      vacancyRate || 0,
+      notes || null,
+      isFavorite || false,
+      demographicLifestyle || null,
+      now,
+      now
+    ]
+  );
+
+  return {
+    success: true,
+    locationData: result.rows[0],
+    message: `Successfully saved location data for ${suburbName}, ${state}`
+  };
+}
+
+// Handler for updating location data
+async function updateLocationData(parameters) {
+  const pool = await getDbPool();
+  const {
+    userId,
+    userEmail,
+    locationId,
+    suburbName,
+    state,
+    cityDistrict,
+    schools,
+    medianHousePrice,
+    medianUnitPrice,
+    rentalPriceHouse,
+    rentalPriceUnit,
+    vacancyRate,
+    notes,
+    isFavorite,
+    demographicLifestyle,
+    confirmed
+  } = parameters;
+
+  if (!locationId) {
+    return {
+      success: false,
+      error: "locationId is required"
+    };
+  }
+
+  const user = await resolveUser(pool, userId, userEmail);
+  if (!user) {
+    return {
+      success: false,
+      error: `User not found with ${userId ? `ID: ${userId}` : `email: ${userEmail}`}`
+    };
+  }
+
+  // Check if location exists and belongs to user
+  const existing = await pool.query(
+    'SELECT * FROM "location-data" WHERE id = $1 AND "userId" = $2',
+    [locationId, user.id]
+  );
+
+  if (existing.rows.length === 0) {
+    return {
+      success: false,
+      error: "Location data not found or does not belong to this user"
+    };
+  }
+
+  const current = existing.rows[0];
+
+  // Show preview if not confirmed
+  if (!confirmed) {
+    const updates = {};
+    if (suburbName !== undefined) updates.suburbName = suburbName;
+    if (state !== undefined) updates.state = state;
+    if (cityDistrict !== undefined) updates.cityDistrict = cityDistrict;
+    if (schools !== undefined) updates.schools = schools;
+    if (medianHousePrice !== undefined) updates.medianHousePrice = medianHousePrice;
+    if (medianUnitPrice !== undefined) updates.medianUnitPrice = medianUnitPrice;
+    if (rentalPriceHouse !== undefined) updates.rentalPriceHouse = rentalPriceHouse;
+    if (rentalPriceUnit !== undefined) updates.rentalPriceUnit = rentalPriceUnit;
+    if (vacancyRate !== undefined) updates.vacancyRate = vacancyRate;
+    if (notes !== undefined) updates.notes = notes;
+    if (isFavorite !== undefined) updates.isFavorite = isFavorite;
+    if (demographicLifestyle !== undefined) updates.demographicLifestyle = demographicLifestyle;
+
+    return {
+      success: true,
+      needsConfirmation: true,
+      preview: {
+        action: "Update location data",
+        current: {
+          suburb: current.suburbName,
+          state: current.state,
+          cityDistrict: current.cityDistrict,
+          schools: current.schools,
+          medianHousePrice: current.medianHousePrice,
+          medianUnitPrice: current.medianUnitPrice,
+          rentalPriceHouse: current.rentalPriceHouse,
+          rentalPriceUnit: current.rentalPriceUnit,
+          vacancyRate: current.vacancyRate,
+          notes: current.notes,
+          isFavorite: current.isFavorite,
+          demographicLifestyle: current.demographicLifestyle
+        },
+        updates: updates
+      },
+      message: "Please confirm you want to update this location data."
+    };
+  }
+
+  // Build update query dynamically
+  const updateFields = [];
+  const updateValues = [];
+  let paramIndex = 1;
+
+  if (suburbName !== undefined) {
+    updateFields.push(`"suburbName" = $${paramIndex++}`);
+    updateValues.push(suburbName);
+  }
+  if (state !== undefined) {
+    updateFields.push(`state = $${paramIndex++}`);
+    updateValues.push(state);
+  }
+  if (cityDistrict !== undefined) {
+    updateFields.push(`"cityDistrict" = $${paramIndex++}`);
+    updateValues.push(cityDistrict);
+  }
+  if (schools !== undefined) {
+    updateFields.push(`schools = $${paramIndex++}`);
+    updateValues.push(schools);
+  }
+  if (medianHousePrice !== undefined) {
+    updateFields.push(`"medianHousePrice" = $${paramIndex++}`);
+    updateValues.push(medianHousePrice);
+  }
+  if (medianUnitPrice !== undefined) {
+    updateFields.push(`"medianUnitPrice" = $${paramIndex++}`);
+    updateValues.push(medianUnitPrice);
+  }
+  if (rentalPriceHouse !== undefined) {
+    updateFields.push(`"rentalPriceHouse" = $${paramIndex++}`);
+    updateValues.push(rentalPriceHouse);
+  }
+  if (rentalPriceUnit !== undefined) {
+    updateFields.push(`"rentalPriceUnit" = $${paramIndex++}`);
+    updateValues.push(rentalPriceUnit);
+  }
+  if (vacancyRate !== undefined) {
+    updateFields.push(`"vacancyRate" = $${paramIndex++}`);
+    updateValues.push(vacancyRate);
+  }
+  if (notes !== undefined) {
+    updateFields.push(`notes = $${paramIndex++}`);
+    updateValues.push(notes);
+  }
+  if (isFavorite !== undefined) {
+    updateFields.push(`"isFavorite" = $${paramIndex++}`);
+    updateValues.push(isFavorite);
+  }
+  if (demographicLifestyle !== undefined) {
+    updateFields.push(`"demographicLifestyle" = $${paramIndex++}`);
+    updateValues.push(demographicLifestyle);
+  }
+
+  if (updateFields.length === 0) {
+    return {
+      success: false,
+      error: "No fields to update"
+    };
+  }
+
+  updateFields.push(`"updatedAt" = $${paramIndex++}`);
+  updateValues.push(new Date().toISOString());
+
+  updateValues.push(locationId, user.id);
+
+  const query = `
+    UPDATE "location-data"
+    SET ${updateFields.join(", ")}
+    WHERE id = $${paramIndex++} AND "userId" = $${paramIndex}
+    RETURNING *
+  `;
+
+  const result = await pool.query(query, updateValues);
+
+  return {
+    success: true,
+    locationData: result.rows[0],
+    message: "Successfully updated location data"
+  };
+}
+
+// Handler for deleting location data
+async function deleteLocationData(parameters) {
+  const pool = await getDbPool();
+  const { userId, userEmail, locationId, confirmed } = parameters;
+
+  if (!locationId) {
+    return {
+      success: false,
+      error: "locationId is required"
+    };
+  }
+
+  const user = await resolveUser(pool, userId, userEmail);
+  if (!user) {
+    return {
+      success: false,
+      error: `User not found with ${userId ? `ID: ${userId}` : `email: ${userEmail}`}`
+    };
+  }
+
+  // Check if location exists and belongs to user
+  const existing = await pool.query(
+    'SELECT * FROM "location-data" WHERE id = $1 AND "userId" = $2',
+    [locationId, user.id]
+  );
+
+  if (existing.rows.length === 0) {
+    return {
+      success: false,
+      error: "Location data not found or does not belong to this user"
+    };
+  }
+
+  const location = existing.rows[0];
+
+  // Show preview if not confirmed
+  if (!confirmed) {
+    return {
+      success: true,
+      needsConfirmation: true,
+      preview: {
+        action: "Delete location data",
+        suburb: location.suburbName,
+        state: location.state
+      },
+      warning: "This action cannot be undone.",
+      message: "Please confirm you want to delete this location data."
+    };
+  }
+
+  // Delete the location
+  await pool.query(
+    'DELETE FROM "location-data" WHERE id = $1 AND "userId" = $2',
+    [locationId, user.id]
+  );
+
+  return {
+    success: true,
+    message: `Successfully deleted location data for ${location.suburbName}, ${location.state}`
+  };
+}
+
+// ============================================================================
+// HEADCOUNT HANDLERS
+// ============================================================================
+
+/**
+ * Create a new headcount
+ * Users specify children by name, and we match them to child IDs
+ */
+async function createHeadcount(parameters) {
+  const pool = await getDbPool();
+  const { userId, userEmail, childNames, date, notes, confirmed } = parameters;
+
+  const user = await resolveUser(pool, userId, userEmail);
+  if (!user) {
+    return {
+      success: false,
+      error: `User not found with ${userId ? `ID: ${userId}` : `email: ${userEmail}`}`
+    };
+  }
+
+  if (!childNames || !Array.isArray(childNames) || childNames.length === 0) {
+    return {
+      success: false,
+      error: "Please provide a list of child names for the headcount."
+    };
+  }
+
+  // Find children by name
+  const childResults = await pool.query(
+    `SELECT id, "firstName", "lastName" 
+     FROM "child-details" 
+     WHERE "userId" = $1 
+     AND LOWER("firstName") = ANY($2::text[])`,
+    [user.id, childNames.map(name => name.toLowerCase())]
+  );
+
+  if (childResults.rows.length === 0) {
+    return {
+      success: false,
+      error: `No children found matching the names: ${childNames.join(', ')}. Please check the names and try again.`
+    };
+  }
+
+  const foundChildren = childResults.rows;
+  const foundNames = foundChildren.map(c => c.firstName);
+  const notFoundNames = childNames.filter(name =>
+    !foundNames.some(fn => fn.toLowerCase() === name.toLowerCase())
+  );
+
+  // Show preview if not confirmed
+  if (!confirmed) {
+    return {
+      success: true,
+      needsConfirmation: true,
+      preview: {
+        action: "Create headcount",
+        date: date || new Date().toISOString(),
+        childrenFound: foundChildren.map(c => `${c.firstName} ${c.lastName || ''}`).filter(Boolean),
+        childrenNotFound: notFoundNames.length > 0 ? notFoundNames : undefined,
+        count: foundChildren.length,
+        notes: notes || "No notes"
+      },
+      message: `Ready to create headcount for ${foundChildren.length} ${foundChildren.length === 1 ? 'child' : 'children'}${notFoundNames.length > 0 ? `. Note: Could not find ${notFoundNames.join(', ')}` : ''}. Please confirm.`
+    };
+  }
+
+  // Create the headcount
+  const headcountDate = date ? new Date(date) : new Date();
+  const headcountResult = await pool.query(
+    `INSERT INTO headcounts (id, "userId", date, notes, "createdAt", "updatedAt")
+     VALUES ($1, $2, $3, $4, NOW(), NOW())
+     RETURNING id, date, notes`,
+    [createId(), user.id, headcountDate, notes || null]
+  );
+
+  const headcount = headcountResult.rows[0];
+
+  // Add children to the headcount
+  for (const child of foundChildren) {
+    await pool.query(
+      `INSERT INTO "headcount-children" (id, "headcountId", "childId", "createdAt")
+       VALUES ($1, $2, $3, NOW())`,
+      [createId(), headcount.id, child.id]
+    );
+  }
+
+  return {
+    success: true,
+    headcount: {
+      id: headcount.id,
+      date: headcount.date,
+      childCount: foundChildren.length,
+      children: foundChildren.map(c => `${c.firstName} ${c.lastName || ''}`).filter(Boolean),
+      notes: headcount.notes
+    },
+    message: `Headcount created successfully with ${foundChildren.length} ${foundChildren.length === 1 ? 'child' : 'children'}.`
+  };
+}
+
+/**
+ * Get headcount records
+ */
+async function getHeadcounts(parameters) {
+  const pool = await getDbPool();
+  const { userId, userEmail, date, limit } = parameters;
+
+  const user = await resolveUser(pool, userId, userEmail);
+  if (!user) {
+    return {
+      success: false,
+      error: `User not found with ${userId ? `ID: ${userId}` : `email: ${userEmail}`}`
+    };
+  }
+
+  let query = `
+    SELECT 
+      h.id, h.date, h.notes, h."createdAt",
+      COUNT(hc."childId") as "childCount"
+    FROM headcounts h
+    LEFT JOIN "headcount-children" hc ON h.id = hc."headcountId"
+    WHERE h."userId" = $1
+  `;
+  const queryParams = [user.id];
+
+  if (date) {
+    query += ` AND DATE(h.date) = DATE($2)`;
+    queryParams.push(new Date(date));
+  }
+
+  query += ` GROUP BY h.id, h.date, h.notes, h."createdAt"
+             ORDER BY h.date DESC`;
+
+  if (limit) {
+    query += ` LIMIT $${queryParams.length + 1}`;
+    queryParams.push(limit);
+  }
+
+  const result = await pool.query(query, queryParams);
+
+  // Get children for each headcount
+  const headcounts = await Promise.all(result.rows.map(async (headcount) => {
+    const childrenResult = await pool.query(
+      `SELECT cd.id, cd."firstName", cd."lastName"
+       FROM "headcount-children" hc
+       JOIN "child-details" cd ON hc."childId" = cd.id
+       WHERE hc."headcountId" = $1
+       ORDER BY cd."firstName"`,
+      [headcount.id]
+    );
+
+    return {
+      id: headcount.id,
+      date: headcount.date,
+      notes: headcount.notes,
+      createdAt: headcount.createdAt,
+      childCount: parseInt(headcount.childCount),
+      children: childrenResult.rows.map(c => ({
+        id: c.id,
+        name: `${c.firstName} ${c.lastName || ''}`.trim()
+      }))
+    };
+  }));
+
+  return {
+    success: true,
+    headcounts,
+    count: headcounts.length
+  };
+}
+
+/**
+ * Delete a headcount
+ */
+async function deleteHeadcount(parameters) {
+  const pool = await getDbPool();
+  const { userId, userEmail, headcountId, confirmed } = parameters;
+
+  const user = await resolveUser(pool, userId, userEmail);
+  if (!user) {
+    return {
+      success: false,
+      error: `User not found with ${userId ? `ID: ${userId}` : `email: ${userEmail}`}`
+    };
+  }
+
+  // Get the headcount
+  const headcountResult = await pool.query(
+    `SELECT h.id, h.date, h.notes, COUNT(hc."childId") as "childCount"
+     FROM headcounts h
+     LEFT JOIN "headcount-children" hc ON h.id = hc."headcountId"
+     WHERE h.id = $1 AND h."userId" = $2
+     GROUP BY h.id`,
+    [headcountId, user.id]
+  );
+
+  if (headcountResult.rows.length === 0) {
+    return {
+      success: false,
+      error: `Headcount not found with ID: ${headcountId}`
+    };
+  }
+
+  const headcount = headcountResult.rows[0];
+
+  // Show preview if not confirmed
+  if (!confirmed) {
+    return {
+      success: true,
+      needsConfirmation: true,
+      preview: {
+        action: "Delete headcount",
+        date: headcount.date,
+        childCount: parseInt(headcount.childCount)
+      },
+      warning: "This action cannot be undone.",
+      message: "Please confirm you want to delete this headcount."
+    };
+  }
+
+  // Delete the headcount (cascade will delete children)
+  await pool.query(
+    'DELETE FROM headcounts WHERE id = $1 AND "userId" = $2',
+    [headcountId, user.id]
+  );
+
+  return {
+    success: true,
+    message: `Successfully deleted headcount from ${headcount.date}`
+  };
+}
+
 // Main Lambda handler
 exports.handler = async (event) => {
   console.log("Received event:", JSON.stringify(event, null, 2));
@@ -1496,6 +2180,32 @@ exports.handler = async (event) => {
         break;
       case "/add-meal-to-plan":
         result = await addMealToPlan(parameters);
+        break;
+      // Location data management
+      case "/search-location-data":
+        result = await searchLocationData(parameters);
+        break;
+      case "/get-location-data":
+        result = await getLocationData(parameters);
+        break;
+      case "/save-location-data":
+        result = await saveLocationData(parameters);
+        break;
+      case "/update-location-data":
+        result = await updateLocationData(parameters);
+        break;
+      case "/delete-location-data":
+        result = await deleteLocationData(parameters);
+        break;
+      // Headcount management
+      case "/create-headcount":
+        result = await createHeadcount(parameters);
+        break;
+      case "/get-headcounts":
+        result = await getHeadcounts(parameters);
+        break;
+      case "/delete-headcount":
+        result = await deleteHeadcount(parameters);
         break;
       default:
         throw new Error(`Unknown API path: ${apiPath}`);
