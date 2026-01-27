@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { getChildren } from "@/app/actions/children"
 import { format } from "date-fns"
+import { ReportingChat } from "@/app/components/reports/ReportingChat"
 
 type ReportType = "daily" | "weekly" | "monthly" | "custom"
 type ReportCategory = "all" | "events" | "bookings" | "children"
@@ -391,6 +392,11 @@ export default function ReportsPage() {
                             )}
                         </div>
                     </div>
+                </div>
+
+                {/* AI Reporting Assistant */}
+                <div className="mt-8">
+                    <ReportingChat initialContext="I can help you generate reports in Excel, CSV, or PDF format. What type of report would you like to create?" />
                 </div>
             </div>
         </div>

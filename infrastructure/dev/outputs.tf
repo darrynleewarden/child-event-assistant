@@ -105,3 +105,13 @@ output "location_agent_alias_id" {
   description = "The alias ID of the Location agent"
   value       = module.bedrock_agent.location_agent_alias_id
 }
+
+output "reporting_agent_id" {
+  description = "The ID of the Reporting agent"
+  value       = module.bedrock_agent.reporting_agent_id
+}
+
+output "reporting_agent_alias_id" {
+  description = "The alias ID of the Reporting agent"
+  value       = module.bedrock_agent.reporting_agent_alias_id
+}

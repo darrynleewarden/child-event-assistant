@@ -188,6 +188,11 @@ resource "aws_iam_role_policy" "child_event_manager_lambda_bedrock" {
             aws_bedrockagent_agent.child_event_manager_location[0].agent_arn,
             "${aws_bedrockagent_agent.child_event_manager_location[0].agent_arn}/*",
             "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:agent-alias/${aws_bedrockagent_agent.child_event_manager_location[0].id}/*"
+          ] : [],
+          var.enable_reporting_agent ? [
+            aws_bedrockagent_agent.child_event_manager_reporting[0].agent_arn,
+            "${aws_bedrockagent_agent.child_event_manager_reporting[0].agent_arn}/*",
+            "arn:aws:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:agent-alias/${aws_bedrockagent_agent.child_event_manager_reporting[0].id}/*"
           ] : []
         )
       }

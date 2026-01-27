@@ -187,6 +187,28 @@ resource "aws_iam_role_policy_attachment" "child_event_manager_lambda_db_vpc" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
+# Policy for Reporting Lambda to write to S3
+resource "aws_iam_role_policy" "child_event_manager_lambda_db_s3_write" {
+  count = var.enable_database && var.enable_reporting_agent ? 1 : 0
+  name  = "${local.agent_name}-lambda-s3-write-policy"
+  role  = aws_iam_role.child_event_manager_lambda_db[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:PutObjectAcl",
+          "s3:GetObject"
+        ]
+        Resource = "${aws_s3_bucket.child_event_manager_reports[0].arn}/*"
+      }
+    ]
+  })
+}
+
 # Create Lambda deployment package for database handler
 data "archive_file" "child_event_manager_lambda_db_zip" {
   count       = var.enable_database ? 1 : 0

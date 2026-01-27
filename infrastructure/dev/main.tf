@@ -126,6 +126,7 @@ module "bedrock_agent" {
   allowed_origins = [
     "http://localhost:3000",
     "http://localhost:3001",
+    "http://localhost:3333",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
     "https://child-event-assistant.vercel.app"
@@ -151,8 +152,9 @@ module "bedrock_agent" {
   # =============================================================================
   # Specialized Agents
   # =============================================================================
-  enable_meal_agent     = true
-  enable_location_agent = true
+  enable_meal_agent      = true
+  enable_location_agent  = true
+  enable_reporting_agent = true
 
   tags = {
     Application = "ChildEventManager"

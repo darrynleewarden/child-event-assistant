@@ -37,6 +37,20 @@ const determineAgent = (message) => {
     };
   }
 
+  // Check for reporting keywords
+  if (lowercaseMessage.includes('report') ||
+    lowercaseMessage.includes('export') ||
+    lowercaseMessage.includes('excel') ||
+    lowercaseMessage.includes('csv') ||
+    lowercaseMessage.includes('pdf') ||
+    lowercaseMessage.includes('generate')) {
+    return {
+      agentId: process.env.REPORTING_AGENT_ID,
+      agentAliasId: process.env.REPORTING_AGENT_ALIAS_ID,
+      agentType: 'reporting'
+    };
+  }
+
   // Default to main agent
   return {
     agentId: process.env.AGENT_ID,

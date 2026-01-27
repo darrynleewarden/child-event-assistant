@@ -162,3 +162,9 @@ variable "enable_location_agent" {
   type        = bool
   default     = true
 }
+
+variable "enable_reporting_agent" {
+  description = "Enable separate Bedrock agent for report generation"
+  type        = bool
+  default     = true
+}

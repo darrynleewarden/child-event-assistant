@@ -180,3 +180,42 @@ output "location_agent_alias_arn" {
   description = "The ARN of the location agent alias"
   value       = var.enable_location_agent ? aws_bedrockagent_agent_alias.child_event_manager_location[0].agent_alias_arn : null
 }
+
+# =============================================================================
+# Reporting Agent Outputs
+# =============================================================================
+
+output "reporting_agent_id" {
+  description = "The ID of the Reporting Bedrock agent"
+  value       = var.enable_reporting_agent ? aws_bedrockagent_agent.child_event_manager_reporting[0].id : null
+}
+
+output "reporting_agent_arn" {
+  description = "The ARN of the Reporting Bedrock agent"
+  value       = var.enable_reporting_agent ? aws_bedrockagent_agent.child_event_manager_reporting[0].agent_arn : null
+}
+
+output "reporting_agent_name" {
+  description = "The name of the Reporting Bedrock agent"
+  value       = var.enable_reporting_agent ? aws_bedrockagent_agent.child_event_manager_reporting[0].agent_name : null
+}
+
+output "reporting_agent_alias_id" {
+  description = "The ID of the reporting agent alias"
+  value       = var.enable_reporting_agent ? aws_bedrockagent_agent_alias.child_event_manager_reporting[0].agent_alias_id : null
+}
+
+output "reporting_agent_alias_arn" {
+  description = "The ARN of the reporting agent alias"
+  value       = var.enable_reporting_agent ? aws_bedrockagent_agent_alias.child_event_manager_reporting[0].agent_alias_arn : null
+}
+
+output "reports_bucket_name" {
+  description = "The name of the S3 bucket for reports (if enabled)"
+  value       = var.enable_reporting_agent ? aws_s3_bucket.child_event_manager_reports[0].id : null
+}
+
+output "reports_bucket_arn" {
+  description = "The ARN of the S3 bucket for reports (if enabled)"
+  value       = var.enable_reporting_agent ? aws_s3_bucket.child_event_manager_reports[0].arn : null
+}
