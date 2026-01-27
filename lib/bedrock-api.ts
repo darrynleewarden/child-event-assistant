@@ -30,10 +30,18 @@ export async function invokeBedrockAgent(
   userContext?: UserContext
 ): Promise<BedrockResponse> {
   const apiEndpoint = process.env.NEXT_PUBLIC_BEDROCK_API_URL
+  const apiKey = process.env.NEXT_PUBLIC_BEDROCK_API_KEY
 
   if (!apiEndpoint) {
     throw new Error('NEXT_PUBLIC_BEDROCK_API_URL is not configured')
   }
+
+  if (!apiKey) {
+    throw new Error('NEXT_PUBLIC_BEDROCK_API_KEY is not configured')
+  }
+
+  console.log('API Key present:', apiKey ? `Yes (${apiKey.substring(0, 10)}...)` : 'No')
+  console.log('API Endpoint:', apiEndpoint)
 
   // Get current date and time to provide context to the AI
   const now = new Date()
@@ -44,6 +52,7 @@ export async function invokeBedrockAgent(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'x-api-key': apiKey,
     },
     body: JSON.stringify({
       message,
@@ -56,6 +65,8 @@ export async function invokeBedrockAgent(
     } as BedrockRequest),
   })
 
+  console.log('Response status:', response.status)
+
   if (!response.ok) {
     let errorMessage = `HTTP error! status: ${response.status}`
     try {
@@ -63,6 +74,7 @@ export async function invokeBedrockAgent(
       if (errorData.error) {
         errorMessage = errorData.error
       }
+      console.error('Error response:', errorData)
     } catch {
       // Response body wasn't valid JSON, use default error message
     }

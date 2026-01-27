@@ -77,6 +77,17 @@ output "db_secret_arn" {
   value       = module.bedrock_agent.db_secret_arn
 }
 
+output "api_key" {
+  description = "API key for authenticating requests (sensitive)"
+  value       = module.bedrock_agent.api_key
+  sensitive   = true
+}
+
+output "api_key_secret_arn" {
+  description = "ARN of the Secrets Manager secret containing the API key"
+  value       = module.bedrock_agent.api_key_secret_arn
+}
+
 output "database_url_template" {
   description = "Database URL template (retrieve password from Secrets Manager)"
   value       = module.bedrock_agent.database_url

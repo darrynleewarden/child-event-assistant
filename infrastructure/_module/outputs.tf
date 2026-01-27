@@ -53,6 +53,17 @@ output "api_invoke_url" {
   value       = "${aws_apigatewayv2_api.child_event_manager_main.api_endpoint}/invoke"
 }
 
+output "api_key" {
+  description = "API key for authenticating requests (sensitive)"
+  value       = random_password.child_event_manager_api_key.result
+  sensitive   = true
+}
+
+output "api_key_secret_arn" {
+  description = "ARN of the Secrets Manager secret containing the API key"
+  value       = aws_secretsmanager_secret.child_event_manager_api_key.arn
+}
+
 output "lambda_function_name" {
   description = "Lambda function name"
   value       = aws_lambda_function.child_event_manager_bedrock_invoker.function_name

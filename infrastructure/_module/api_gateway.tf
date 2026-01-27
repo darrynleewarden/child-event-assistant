@@ -80,4 +80,89 @@ resource "aws_apigatewayv2_route" "child_event_manager_invoke" {
   api_id    = aws_apigatewayv2_api.child_event_manager_main.id
   route_key = "POST /invoke"
   target    = "integrations/${aws_apigatewayv2_integration.child_event_manager_lambda.id}"
+
+  authorization_type = "CUSTOM"
+  authorizer_id      = aws_apigatewayv2_authorizer.child_event_manager_api_key.id
+}
+
+# Lambda Authorizer for API Key validation
+resource "aws_apigatewayv2_authorizer" "child_event_manager_api_key" {
+  api_id           = aws_apigatewayv2_api.child_event_manager_main.id
+  authorizer_type  = "REQUEST"
+  authorizer_uri   = aws_lambda_function.child_event_manager_api_authorizer.invoke_arn
+  identity_sources = ["$request.header.x-api-key"]
+  name             = "${local.agent_name}-authorizer"
+
+  authorizer_payload_format_version = "2.0"
+  enable_simple_responses           = true
+}
+
+# Lambda function for API key authorization
+data "archive_file" "child_event_manager_authorizer_zip" {
+  type        = "zip"
+  output_path = "${path.module}/lambda/api_authorizer.zip"
+
+  source {
+    content  = file("${path.module}/lambda/api_authorizer.js")
+    filename = "index.js"
+  }
+}
+
+resource "aws_lambda_function" "child_event_manager_api_authorizer" {
+  filename         = data.archive_file.child_event_manager_authorizer_zip.output_path
+  function_name    = "${local.agent_name}-api-authorizer"
+  role             = aws_iam_role.child_event_manager_lambda.arn
+  handler          = "index.handler"
+  source_code_hash = data.archive_file.child_event_manager_authorizer_zip.output_base64sha256
+  runtime          = "nodejs20.x"
+  timeout          = 10
+
+  environment {
+    variables = {
+      API_KEY = random_password.child_event_manager_api_key.result
+    }
+  }
+
+  tags = merge(
+    var.tags,
+    {
+      Name        = "${local.agent_name}-api-authorizer"
+      Environment = var.environment
+    }
+  )
+}
+
+# Permission for API Gateway to invoke the authorizer Lambda
+resource "aws_lambda_permission" "child_event_manager_api_gateway_authorizer" {
+  statement_id  = "AllowAPIGatewayAuthorizerInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.child_event_manager_api_authorizer.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.child_event_manager_main.execution_arn}/*/*"
+}
+
+# Generate a secure random API key
+resource "random_password" "child_event_manager_api_key" {
+  length           = 40
+  special          = false
+  override_special = ""
+}
+
+# Store API key in Secrets Manager
+resource "aws_secretsmanager_secret" "child_event_manager_api_key" {
+  name        = "${local.agent_name}-api-key"
+  description = "API key for Child Event Manager API Gateway"
+
+  tags = merge(
+    var.tags,
+    {
+      Name        = "${local.agent_name}-api-key"
+      Environment = var.environment
+    }
+  )
+}
+
+resource "aws_secretsmanager_secret_version" "child_event_manager_api_key" {
+  secret_id     = aws_secretsmanager_secret.child_event_manager_api_key.id
+  secret_string = random_password.child_event_manager_api_key.result
 }
