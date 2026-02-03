@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/auth"
+import { auth } from "@/lib/dev-auth"
 import { generateReportData, ReportFilters, ReportType } from "@/app/actions/reports"
 import { format } from "date-fns"
 import prisma from "@/lib/prisma"

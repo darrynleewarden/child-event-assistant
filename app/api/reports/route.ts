@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { renderToBuffer } from "@react-pdf/renderer"
-import { auth } from "@/auth"
+import { auth } from "@/lib/dev-auth"
 import { generateReportData, ReportFilters } from "@/app/actions/reports"
 import { ReportPDF } from "@/app/components/reports/ReportPDF"
 import { format } from "date-fns"

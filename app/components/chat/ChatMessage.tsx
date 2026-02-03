@@ -9,6 +9,29 @@ interface ChatMessageProps {
   textContent?: string
 }
 
+// Helper function to convert URLs in text to clickable links
+function linkifyText(text: string): React.ReactNode[] {
+  const urlRegex = /(https?:\/\/[^\s]+)/g
+  const parts = text.split(urlRegex)
+
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800 underline break-all"
+        >
+          {part}
+        </a>
+      )
+    }
+    return part
+  })
+}
+
 export function ChatMessage({
   children,
   variant = "bot",
@@ -87,8 +110,8 @@ export function ChatMessage({
       <div
         className={`${maxWidth} ${alignment} rounded-2xl border ${borderColor} bg-white px-5 py-4 text-gray-800 shadow-sm`}
       >
-        <div className="prose prose-sm max-w-none">
-          {children}
+        <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+          {typeof children === "string" ? linkifyText(children) : children}
         </div>
 
         {/* Speaker button for bot messages */}

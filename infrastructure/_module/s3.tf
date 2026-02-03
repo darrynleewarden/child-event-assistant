@@ -140,6 +140,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "child_event_manager_reports" {
     id     = "delete-old-reports"
     status = "Enabled"
 
+    filter {
+      prefix = "reports/"
+    }
+
     expiration {
       days = 30
     }

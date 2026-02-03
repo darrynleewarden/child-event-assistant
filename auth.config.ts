@@ -7,6 +7,13 @@ export const authConfig = {
   },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
+      // DEV MODE: Bypass all auth checks
+      if (process.env.NEXT_PUBLIC_DEV === "true") {
+        console.log("[DEV MODE] Bypassing authorization check for:", nextUrl.pathname)
+        return true
+      }
+
+      // PRODUCTION MODE: Original logic
       const isLoggedIn = !!auth?.user
       const isAuthPage = nextUrl.pathname.startsWith("/auth")
       const isProtectedRoute =

@@ -1,6 +1,6 @@
 "use server"
 
-import { auth } from "@/auth"
+import { auth } from "@/lib/dev-auth"
 import prisma from "@/lib/prisma"
 import { startOfMonth, endOfMonth } from "date-fns"
 

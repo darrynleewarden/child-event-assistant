@@ -1,5 +1,6 @@
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const { Pool } = require("pg");
 const ExcelJS = require("exceljs");
 const PDFDocument = require("pdfkit");
@@ -58,18 +59,29 @@ async function getDbPool() {
 // Upload file to S3
 async function uploadToS3(buffer, filename, contentType) {
     const bucket = process.env.REPORTS_BUCKET || process.env.KNOWLEDGE_BASE_BUCKET;
+    const key = `reports/${filename}`;
 
-    const command = new PutObjectCommand({
+    // Upload the file to S3
+    const putCommand = new PutObjectCommand({
         Bucket: bucket,
-        Key: `reports/${filename}`,
+        Key: key,
         Body: buffer,
         ContentType: contentType,
     });
 
-    await s3Client.send(command);
+    await s3Client.send(putCommand);
 
-    // Return presigned URL or public URL
-    return `https://${bucket}.s3.amazonaws.com/reports/${filename}`;
+    // Generate a presigned URL that expires in 7 days (604800 seconds)
+    const getCommand = new GetObjectCommand({
+        Bucket: bucket,
+        Key: key,
+    });
+
+    const presignedUrl = await getSignedUrl(s3Client, getCommand, {
+        expiresIn: 604800, // 7 days
+    });
+
+    return presignedUrl;
 }
 
 // Format date for display
@@ -477,7 +489,7 @@ exports.handler = async (event) => {
                     reportUrl,
                     filename,
                     format,
-                    message: `${reportType} generated successfully in ${format.toUpperCase()} format`,
+                    message: `${reportType} generated successfully in ${format.toUpperCase()} format.\n\nDownload your report here:\n${reportUrl}\n\nFilename: ${filename}\n\nNote: This download link expires in 7 days.`,
                 };
                 break;
             }
