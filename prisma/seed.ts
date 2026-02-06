@@ -1,8 +1,11 @@
 import "dotenv/config"
 import { PrismaClient } from "@prisma/client"
-import * as bcrypt from "bcryptjs"
+import { PrismaPg } from "@prisma/adapter-pg"
+import { Pool } from "pg"
 
-const prisma = new PrismaClient()
+const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+const adapter = new PrismaPg(pool)
+const prisma = new PrismaClient({ adapter })
 
 async function main() {
   console.log("Starting database seed...")
@@ -295,7 +298,6 @@ async function main() {
       rentalPriceUnit: 420,
       vacancyRate: 1.8,
       notes: 'CBD area with excellent public transport',
-      isFavorite: true,
       userId: user.id
     },
     {
@@ -307,7 +309,6 @@ async function main() {
       rentalPriceUnit: 520,
       vacancyRate: 2.1,
       notes: 'Major business district',
-      isFavorite: false,
       userId: user.id
     },
     {
@@ -319,7 +320,6 @@ async function main() {
       rentalPriceUnit: 380,
       vacancyRate: 1.5,
       notes: 'Growing market with good investment potential',
-      isFavorite: true,
       userId: user.id
     },
     {
@@ -331,7 +331,6 @@ async function main() {
       rentalPriceUnit: 340,
       vacancyRate: 1.2,
       notes: 'Affordable capital city',
-      isFavorite: false,
       userId: user.id
     },
     {
@@ -343,7 +342,6 @@ async function main() {
       rentalPriceUnit: 320,
       vacancyRate: 1.4,
       notes: 'Most affordable capital city',
-      isFavorite: false,
       userId: user.id
     },
     {
@@ -355,7 +353,6 @@ async function main() {
       rentalPriceUnit: 750,
       vacancyRate: 2.3,
       notes: 'Premium beachside location',
-      isFavorite: true,
       userId: user.id
     },
     {
@@ -367,7 +364,6 @@ async function main() {
       rentalPriceUnit: 450,
       vacancyRate: 1.9,
       notes: 'Inner city suburb near universities',
-      isFavorite: false,
       userId: user.id
     },
     {
@@ -379,14 +375,17 @@ async function main() {
       rentalPriceUnit: 420,
       vacancyRate: 1.6,
       notes: 'Cultural precinct with river views',
-      isFavorite: false,
       userId: user.id
     }
   ];
 
+  // Suburbs that should be favourited: Melbourne, Brisbane, Bondi
+  const favouriteSuburbs = ['Melbourne', 'Brisbane', 'Bondi'];
+
   // Use upsert to avoid duplicates on re-running seed
+  const createdLocations = [];
   for (const location of locationData) {
-    await prisma.locationData.upsert({
+    const result = await prisma.locationData.upsert({
       where: {
         userId_suburbName_state: {
           userId: user.id,
@@ -397,9 +396,21 @@ async function main() {
       update: location,
       create: location
     });
+    createdLocations.push(result);
   }
 
+  // Update user's favourites array with IDs of favourite locations
+  const favouriteIds = createdLocations
+    .filter(loc => favouriteSuburbs.includes(loc.suburbName))
+    .map(loc => loc.id);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { favourites: favouriteIds }
+  });
+
   console.log(`✅ Seeded ${locationData.length} location records`)
+  console.log(`⭐ Set ${favouriteIds.length} locations as favourites`)
 }
 
 main()

@@ -25,6 +25,7 @@ model User {
   bookings      Booking[]
   meals         Meal[]
   mealPlans     MealPlan[]
+  favourites    String[]       @default([])
   locationData  LocationData[]
   headcounts    Headcount[]
   createdAt     DateTime       @default(now())
@@ -197,7 +198,6 @@ model LocationData {
   rentalPriceUnit      Float // Weekly rental price
   vacancyRate          Float // Percentage
   notes                String? // User notes about this suburb
-  isFavorite           Boolean  @default(false)
   demographicLifestyle String? // Demographic and lifestyle information
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt

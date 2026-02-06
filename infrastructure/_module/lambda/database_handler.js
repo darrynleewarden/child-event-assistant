@@ -1462,11 +1462,18 @@ async function getLocationData(parameters) {
     };
   }
 
+  // Fetch user's favourites array
+  const userResult = await pool.query(
+    'SELECT favourites FROM "User" WHERE id = $1',
+    [user.id]
+  );
+  const favourites = userResult.rows[0]?.favourites || [];
+
   let query = `
     SELECT
       id, "userId", "suburbName", state, "cityDistrict", "schools",
       "medianHousePrice", "medianUnitPrice",
-      "rentalPriceHouse", "rentalPriceUnit", "vacancyRate", notes, "isFavorite",
+      "rentalPriceHouse", "rentalPriceUnit", "vacancyRate", notes,
       "demographicLifestyle", "createdAt", "updatedAt"
     FROM "location-data"
     WHERE "userId" = $1
@@ -1478,19 +1485,26 @@ async function getLocationData(parameters) {
     query += ` AND LOWER("suburbName") = $${queryParams.length}`;
   }
 
-  if (isFavorite !== undefined) {
-    queryParams.push(isFavorite);
-    query += ` AND "isFavorite" = $${queryParams.length}`;
-  }
-
   query += ` ORDER BY "createdAt" DESC`;
 
   const result = await pool.query(query, queryParams);
 
+  // Compute isFavorite dynamically from user's favourites array
+  let locationData = result.rows.map(row => ({
+    ...row,
+    isFavorite: favourites.includes(row.id)
+  }));
+
+  // Filter by isFavorite if requested
+  if (isFavorite !== undefined) {
+    const filterValue = isFavorite === true || isFavorite === 'true';
+    locationData = locationData.filter(loc => loc.isFavorite === filterValue);
+  }
+
   return {
     success: true,
-    locationData: result.rows,
-    count: result.rows.length
+    locationData,
+    count: locationData.length
   };
 }
 
@@ -1561,7 +1575,6 @@ async function saveLocationData(parameters) {
         rentalPriceUnit: rentalPriceUnit || 0,
         vacancyRate: vacancyRate || 0,
         notes: notes || null,
-        isFavorite: isFavorite || false,
         demographicLifestyle: demographicLifestyle || null
       },
       message: "Please confirm you want to save this location data."
@@ -1576,9 +1589,9 @@ async function saveLocationData(parameters) {
     `INSERT INTO "location-data"
       (id, "userId", "suburbName", state, "cityDistrict", "schools",
        "medianHousePrice", "medianUnitPrice",
-       "rentalPriceHouse", "rentalPriceUnit", "vacancyRate", notes, "isFavorite",
+       "rentalPriceHouse", "rentalPriceUnit", "vacancyRate", notes,
        "demographicLifestyle", "createdAt", "updatedAt")
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
     RETURNING *`,
     [
       id,
@@ -1593,16 +1606,23 @@ async function saveLocationData(parameters) {
       rentalPriceUnit || 0,
       vacancyRate || 0,
       notes || null,
-      isFavorite || false,
       demographicLifestyle || null,
       now,
       now
     ]
   );
 
+  // If isFavorite is true, add the location ID to the user's favourites array
+  if (isFavorite === true || isFavorite === 'true') {
+    await pool.query(
+      `UPDATE "User" SET favourites = array_append(favourites, $1) WHERE id = $2 AND NOT ($1 = ANY(favourites))`,
+      [id, user.id]
+    );
+  }
+
   return {
     success: true,
-    locationData: result.rows[0],
+    locationData: { ...result.rows[0], isFavorite: isFavorite === true || isFavorite === 'true' },
     message: `Successfully saved location data for ${suburbName}, ${state}`
   };
 }
@@ -1672,7 +1692,7 @@ async function updateLocationData(parameters) {
     if (rentalPriceUnit !== undefined) updates.rentalPriceUnit = rentalPriceUnit;
     if (vacancyRate !== undefined) updates.vacancyRate = vacancyRate;
     if (notes !== undefined) updates.notes = notes;
-    if (isFavorite !== undefined) updates.isFavorite = isFavorite;
+    if (isFavorite !== undefined) updates.isFavorite = isFavorite;  // Will be handled via User.favourites
     if (demographicLifestyle !== undefined) updates.demographicLifestyle = demographicLifestyle;
 
     return {
@@ -1691,7 +1711,6 @@ async function updateLocationData(parameters) {
           rentalPriceUnit: current.rentalPriceUnit,
           vacancyRate: current.vacancyRate,
           notes: current.notes,
-          isFavorite: current.isFavorite,
           demographicLifestyle: current.demographicLifestyle
         },
         updates: updates
@@ -1745,39 +1764,58 @@ async function updateLocationData(parameters) {
     updateFields.push(`notes = $${paramIndex++}`);
     updateValues.push(notes);
   }
-  if (isFavorite !== undefined) {
-    updateFields.push(`"isFavorite" = $${paramIndex++}`);
-    updateValues.push(isFavorite);
-  }
   if (demographicLifestyle !== undefined) {
     updateFields.push(`"demographicLifestyle" = $${paramIndex++}`);
     updateValues.push(demographicLifestyle);
   }
 
-  if (updateFields.length === 0) {
-    return {
-      success: false,
-      error: "No fields to update"
-    };
+  // If only isFavorite was provided with no other location-data fields, skip the location update
+  let locationRow = current;
+  if (updateFields.length > 0) {
+    updateFields.push(`"updatedAt" = $${paramIndex++}`);
+    updateValues.push(new Date().toISOString());
+
+    updateValues.push(locationId, user.id);
+
+    const query = `
+      UPDATE "location-data"
+      SET ${updateFields.join(", ")}
+      WHERE id = $${paramIndex++} AND "userId" = $${paramIndex}
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, updateValues);
+    locationRow = result.rows[0];
   }
 
-  updateFields.push(`"updatedAt" = $${paramIndex++}`);
-  updateValues.push(new Date().toISOString());
-
-  updateValues.push(locationId, user.id);
-
-  const query = `
-    UPDATE "location-data"
-    SET ${updateFields.join(", ")}
-    WHERE id = $${paramIndex++} AND "userId" = $${paramIndex}
-    RETURNING *
-  `;
-
-  const result = await pool.query(query, updateValues);
+  // Handle isFavorite via User.favourites array
+  let isFav = false;
+  if (isFavorite !== undefined) {
+    isFav = isFavorite === true || isFavorite === 'true';
+    if (isFav) {
+      await pool.query(
+        `UPDATE "User" SET favourites = array_append(favourites, $1) WHERE id = $2 AND NOT ($1 = ANY(favourites))`,
+        [locationId, user.id]
+      );
+    } else {
+      await pool.query(
+        `UPDATE "User" SET favourites = array_remove(favourites, $1) WHERE id = $2`,
+        [locationId, user.id]
+      );
+    }
+  } else {
+    // Check current favourite status from user's array
+    const userResult = await pool.query(
+      'SELECT favourites FROM "User" WHERE id = $1',
+      [user.id]
+    );
+    const favourites = userResult.rows[0]?.favourites || [];
+    isFav = favourites.includes(locationId);
+  }
 
   return {
     success: true,
-    locationData: result.rows[0],
+    locationData: { ...locationRow, isFavorite: isFav },
     message: "Successfully updated location data"
   };
 }
@@ -1835,6 +1873,12 @@ async function deleteLocationData(parameters) {
   // Delete the location
   await pool.query(
     'DELETE FROM "location-data" WHERE id = $1 AND "userId" = $2',
+    [locationId, user.id]
+  );
+
+  // Remove the location ID from the user's favourites array
+  await pool.query(
+    `UPDATE "User" SET favourites = array_remove(favourites, $1) WHERE id = $2`,
     [locationId, user.id]
   );
 

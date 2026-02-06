@@ -26,16 +26,32 @@ export async function POST(request: NextRequest) {
 
     // Handle get-location-data action
     if (action === 'get-location-data') {
-      const locationData = await prisma.locationData.findMany({
+      // Fetch user's favourites array
+      const user = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { favourites: true },
+      })
+      const favourites = user?.favourites ?? []
+
+      const locations = await prisma.locationData.findMany({
         where: {
-          userId: session.user.id,
-          ...(suburbName && { suburbName: { contains: suburbName, mode: 'insensitive' } }),
-          ...(isFavorite !== undefined && { isFavorite }),
+          ...(suburbName && { suburbName: { contains: suburbName, mode: 'insensitive' as const } }),
         },
         orderBy: {
           createdAt: 'desc',
         },
       })
+
+      // Compute isFavorite dynamically from user's favourites array
+      let locationData = locations.map((loc) => ({
+        ...loc,
+        isFavorite: favourites.includes(loc.id),
+      }))
+
+      // Filter by isFavorite if requested
+      if (isFavorite !== undefined) {
+        locationData = locationData.filter((loc) => loc.isFavorite === isFavorite)
+      }
 
       return NextResponse.json({
         success: true,
