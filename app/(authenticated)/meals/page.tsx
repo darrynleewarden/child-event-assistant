@@ -1,4 +1,4 @@
-import { auth } from "@/auth"
+import { auth } from "@/lib/dev-auth"
 import { redirect } from "next/navigation"
 import { getMealPlanForWeek, createMealPlan } from "@/app/actions/meals"
 import { WeeklyMealGrid } from "@/app/components/meals/WeeklyMealGrid"

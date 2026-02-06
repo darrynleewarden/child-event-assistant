@@ -7,6 +7,7 @@ interface ChatMessageProps {
   variant?: "bot" | "user"
   autoSpeak?: boolean
   textContent?: string
+  isNew?: boolean
 }
 
 // Helper function to convert URLs in text to clickable links
@@ -36,7 +37,8 @@ export function ChatMessage({
   children,
   variant = "bot",
   autoSpeak = false,
-  textContent
+  textContent,
+  isNew = false
 }: ChatMessageProps) {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [isSupported, setIsSupported] = useState(false)

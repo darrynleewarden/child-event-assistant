@@ -1,4 +1,4 @@
-import { auth } from "@/auth"
+import { auth } from "@/lib/dev-auth"
 import Link from "next/link"
 
 export default async function DashboardPage() {

@@ -1,4 +1,4 @@
-import { auth } from "@/auth"
+import { auth } from "@/lib/dev-auth"
 import { redirect } from "next/navigation"
 import { getUserProfile } from "@/app/actions/users"
 import { getChildren } from "@/app/actions/children"

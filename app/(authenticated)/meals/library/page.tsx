@@ -1,4 +1,4 @@
-import { auth } from "@/auth"
+import { auth } from "@/lib/dev-auth"
 import { redirect } from "next/navigation"
 import { getMeals, getMealTemplates } from "@/app/actions/meals"
 import { MealCard } from "@/app/components/meals/MealCard"

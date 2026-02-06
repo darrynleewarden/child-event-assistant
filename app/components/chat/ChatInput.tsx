@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react"
 interface ChatInputProps {
   onSend?: (message: string) => void
   placeholder?: string
+  disabled?: boolean
 }
 
 // Type definitions for Web Speech API
@@ -38,7 +39,7 @@ declare global {
   }
 }
 
-export function ChatInput({ onSend, placeholder = "Ask me anything..." }: ChatInputProps) {
+export function ChatInput({ onSend, placeholder = "Ask me anything...", disabled = false }: ChatInputProps) {
   const [message, setMessage] = useState("")
   const [isListening, setIsListening] = useState(false)
   const [isSupported, setIsSupported] = useState(false)
@@ -107,10 +108,10 @@ export function ChatInput({ onSend, placeholder = "Ask me anything..." }: ChatIn
           <button
             type="button"
             onClick={toggleListening}
-            disabled={!isSupported}
+            disabled={!isSupported || disabled}
             className={`shrink-0 transition-colors ${isListening
               ? "text-primary animate-pulse"
-              : isSupported
+              : isSupported && !disabled
                 ? "text-gray-400 hover:text-gray-600"
                 : "text-gray-300 cursor-not-allowed"
               }`}
@@ -138,13 +139,14 @@ export function ChatInput({ onSend, placeholder = "Ask me anything..." }: ChatIn
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={isListening ? "Listening..." : placeholder}
-            className="flex-1 bg-transparent text-gray-800 placeholder-gray-400 outline-none"
+            disabled={disabled}
+            className="flex-1 bg-transparent text-gray-800 placeholder-gray-400 outline-none disabled:cursor-not-allowed disabled:opacity-50"
           />
 
           <button
             type="submit"
-            disabled={!message.trim()}
-            className={`shrink-0 transition-colors ${message.trim()
+            disabled={!message.trim() || disabled}
+            className={`shrink-0 transition-colors ${message.trim() && !disabled
               ? "text-gray-500 hover:text-gray-700"
               : "text-gray-300"
               }`}
