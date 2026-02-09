@@ -19,7 +19,8 @@
                                 "type": "object",
                                 "required": [
                                     "suburbName",
-                                    "state"
+                                    "state",
+                                    "postcode"
                                 ],
                                 "properties": {
                                     "suburbName": {
@@ -29,6 +30,10 @@
                                     "state": {
                                         "type": "string",
                                         "description": "Australian state code (NSW, VIC, QLD, WA, SA, TAS, NT, ACT)"
+                                    },
+                                    "postcode": {
+                                        "type": "string",
+                                        "description": "The 4-digit Australian postcode for the suburb (e.g., 4215 for Southport)"
                                     }
                                 }
                             }
@@ -364,6 +369,9 @@
                     "state": {
                         "type": "string"
                     },
+                    "postcode": {
+                        "type": "string"
+                    },
                     "medianHousePrice": {
                         "type": "number"
                     },
@@ -379,9 +387,29 @@
                     "vacancyRate": {
                         "type": "number"
                     },
+                    "houseRentalYield": {
+                        "type": "number",
+                        "description": "Calculated gross rental yield for houses (%)"
+                    },
+                    "unitRentalYield": {
+                        "type": "number",
+                        "description": "Calculated gross rental yield for units (%)"
+                    },
+                    "houseAnnualGrowth": {
+                        "type": "number",
+                        "description": "Annual house price growth (%)"
+                    },
+                    "population": {
+                        "type": "integer",
+                        "description": "Suburb population"
+                    },
                     "dataSource": {
                         "type": "string",
                         "description": "Which sources were used to compile this data"
+                    },
+                    "dataQuality": {
+                        "type": "string",
+                        "description": "Quality of data retrieved: comprehensive, partial, or minimal"
                     },
                     "lastUpdated": {
                         "type": "string"

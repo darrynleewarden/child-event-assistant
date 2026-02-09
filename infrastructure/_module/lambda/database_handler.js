@@ -1395,58 +1395,390 @@ async function addMealToPlan(parameters) {
 // LOCATION DATA HANDLERS
 // ============================================================================
 
+// Browser-like headers to avoid bot detection when fetching property sites
+const FETCH_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'en-AU,en-US;q=0.9,en;q=0.8',
+  'Accept-Encoding': 'gzip, deflate, br',
+  'Sec-Fetch-Dest': 'document',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'none',
+  'Sec-Fetch-User': '?1',
+  'Cache-Control': 'max-age=0',
+};
+
+// Map state codes to lowercase URL slugs
+const STATE_MAP = {
+  NSW: 'nsw', VIC: 'vic', QLD: 'qld', WA: 'wa',
+  SA: 'sa', TAS: 'tas', NT: 'nt', ACT: 'act',
+};
+
+/**
+ * Fetch with a timeout using AbortController
+ */
+async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * Parse realestate.com.au suburb profile HTML for property data
+ */
+function parseRealestatePage(html) {
+  const data = {};
+
+  // 1. Try extracting from window.ArgonautExchange JSON blob
+  const argonautMatch = html.match(/window\.ArgonautExchange\s*=\s*(\{[\s\S]*?\});\s*<\/script>/);
+  if (argonautMatch) {
+    try {
+      const argonaut = JSON.parse(argonautMatch[1]);
+      console.log('Found ArgonautExchange data');
+      // Walk the object looking for price data
+      const jsonStr = JSON.stringify(argonaut);
+      const medianHouseMatch = jsonStr.match(/"medianSoldPrice":\s*(\d+)/);
+      const medianUnitMatch = jsonStr.match(/"medianSoldPrice":\s*\d+[^}]*"medianSoldPrice":\s*(\d+)/);
+      if (medianHouseMatch) data.medianHousePrice = parseInt(medianHouseMatch[1]);
+      if (medianUnitMatch) data.medianUnitPrice = parseInt(medianUnitMatch[1]);
+    } catch (e) {
+      console.log('Failed to parse ArgonautExchange:', e.message);
+    }
+  }
+
+  // 2. Try JSON-LD structured data
+  const jsonLdMatches = html.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi);
+  for (const match of jsonLdMatches) {
+    try {
+      const ld = JSON.parse(match[1]);
+      const ldStr = JSON.stringify(ld);
+      if (ldStr.includes('median') || ldStr.includes('price')) {
+        console.log('Found JSON-LD with price data');
+      }
+    } catch (e) { /* skip invalid JSON-LD */ }
+  }
+
+  // 3. Regex for price patterns in the HTML
+  // Median house price patterns
+  if (!data.medianHousePrice) {
+    const housePricePatterns = [
+      /median\s+(?:house|property)\s+price[^$]*?\$\s*([\d,]+(?:\.\d+)?(?:\s*[mkMK])?)/i,
+      /houses?[^$]*?median[^$]*?\$\s*([\d,]+(?:\.\d+)?(?:\s*[mkMK])?)/i,
+      /\$\s*([\d,]+(?:\.\d+)?(?:\s*[mkMK])?)\s*(?:median\s+)?(?:house|property)/i,
+      /house[^<]{0,100}median[^<]{0,50}\$\s*([\d,]+)/i,
+      /median[^<]{0,50}house[^<]{0,50}\$\s*([\d,]+)/i,
+    ];
+    for (const pattern of housePricePatterns) {
+      const match = html.match(pattern);
+      if (match) {
+        data.medianHousePrice = parseAUPrice(match[1]);
+        break;
+      }
+    }
+  }
+
+  // Median unit price patterns
+  if (!data.medianUnitPrice) {
+    const unitPricePatterns = [
+      /median\s+(?:unit|apartment)\s+price[^$]*?\$\s*([\d,]+(?:\.\d+)?(?:\s*[mkMK])?)/i,
+      /units?[^$]*?median[^$]*?\$\s*([\d,]+(?:\.\d+)?(?:\s*[mkMK])?)/i,
+      /\$\s*([\d,]+(?:\.\d+)?(?:\s*[mkMK])?)\s*(?:median\s+)?(?:unit|apartment)/i,
+      /unit[^<]{0,100}median[^<]{0,50}\$\s*([\d,]+)/i,
+      /median[^<]{0,50}unit[^<]{0,50}\$\s*([\d,]+)/i,
+    ];
+    for (const pattern of unitPricePatterns) {
+      const match = html.match(pattern);
+      if (match) {
+        data.medianUnitPrice = parseAUPrice(match[1]);
+        break;
+      }
+    }
+  }
+
+  // Rental price patterns
+  const houseRentMatch = html.match(/houses?[^$]*?(?:rent|rental)[^$]*?\$\s*([\d,]+)\s*(?:per\s+week|pw|\/w)/i)
+    || html.match(/(?:rent|rental)[^$]*?houses?[^$]*?\$\s*([\d,]+)\s*(?:per\s+week|pw|\/w)/i)
+    || html.match(/house[^<]{0,100}rent[^<]{0,50}\$\s*([\d,]+)/i);
+  if (houseRentMatch) data.rentalPriceHouse = parseInt(houseRentMatch[1].replace(/,/g, ''));
+
+  const unitRentMatch = html.match(/units?[^$]*?(?:rent|rental)[^$]*?\$\s*([\d,]+)\s*(?:per\s+week|pw|\/w)/i)
+    || html.match(/(?:rent|rental)[^$]*?units?[^$]*?\$\s*([\d,]+)\s*(?:per\s+week|pw|\/w)/i)
+    || html.match(/unit[^<]{0,100}rent[^<]{0,50}\$\s*([\d,]+)/i);
+  if (unitRentMatch) data.rentalPriceUnit = parseInt(unitRentMatch[1].replace(/,/g, ''));
+
+  // Vacancy rate
+  const vacancyMatch = html.match(/vacancy\s+rate[^%]*?([\d.]+)\s*%/i)
+    || html.match(/([\d.]+)\s*%\s*vacancy/i);
+  if (vacancyMatch) data.vacancyRate = parseFloat(vacancyMatch[1]);
+
+  // Annual growth
+  const growthMatch = html.match(/annual\s+growth[^%]*?([+-]?\d+\.?\d*)\s*%/i)
+    || html.match(/([+-]?\d+\.?\d*)\s*%\s*(?:annual\s+)?growth/i);
+  if (growthMatch) data.houseAnnualGrowth = parseFloat(growthMatch[1]);
+
+  // Population
+  const popMatch = html.match(/population[^0-9]*?([\d,]+)/i);
+  if (popMatch) data.population = parseInt(popMatch[1].replace(/,/g, ''));
+
+  // 4. Meta tag extraction as last resort
+  if (!data.medianHousePrice) {
+    const ogDesc = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]+)"/i);
+    if (ogDesc) {
+      const desc = ogDesc[1];
+      const priceMatch = desc.match(/\$\s*([\d,]+(?:\.\d+)?(?:\s*[mkMK])?)/);
+      if (priceMatch) data.medianHousePrice = parseAUPrice(priceMatch[1]);
+    }
+  }
+
+  return data;
+}
+
+/**
+ * Parse Australian price strings like "$1,250,000", "$1.25M", "$850K"
+ */
+function parseAUPrice(priceStr) {
+  if (!priceStr) return null;
+  const cleaned = priceStr.replace(/[\s,$]/g, '');
+  if (/[mM]$/i.test(cleaned)) {
+    return Math.round(parseFloat(cleaned.replace(/[mM]/i, '')) * 1000000);
+  }
+  if (/[kK]$/i.test(cleaned)) {
+    return Math.round(parseFloat(cleaned.replace(/[kK]/i, '')) * 1000);
+  }
+  const num = parseInt(cleaned.replace(/,/g, ''));
+  return isNaN(num) ? null : num;
+}
+
+/**
+ * Parse yourinvestmentpropertymag.com.au HTML (CoreLogic-sourced data)
+ */
+function parseYIPPage(html) {
+  const data = {};
+
+  // Median house price
+  const houseMedian = html.match(/house[^<]*median[^$]*?\$\s*([\d,]+)/i)
+    || html.match(/median[^<]*house[^$]*?\$\s*([\d,]+)/i)
+    || html.match(/houses?[\s\S]{0,200}?median[\s\S]{0,100}?\$\s*([\d,]+)/i);
+  if (houseMedian) data.medianHousePrice = parseInt(houseMedian[1].replace(/,/g, ''));
+
+  // Median unit price
+  const unitMedian = html.match(/unit[^<]*median[^$]*?\$\s*([\d,]+)/i)
+    || html.match(/median[^<]*unit[^$]*?\$\s*([\d,]+)/i)
+    || html.match(/units?[\s\S]{0,200}?median[\s\S]{0,100}?\$\s*([\d,]+)/i);
+  if (unitMedian) data.medianUnitPrice = parseInt(unitMedian[1].replace(/,/g, ''));
+
+  // Weekly rent for houses
+  const houseRent = html.match(/house[^<]*(?:weekly\s+)?rent[^$]*?\$\s*([\d,]+)/i)
+    || html.match(/rent[^<]*house[^$]*?\$\s*([\d,]+)/i);
+  if (houseRent) data.rentalPriceHouse = parseInt(houseRent[1].replace(/,/g, ''));
+
+  // Weekly rent for units
+  const unitRent = html.match(/unit[^<]*(?:weekly\s+)?rent[^$]*?\$\s*([\d,]+)/i)
+    || html.match(/rent[^<]*unit[^$]*?\$\s*([\d,]+)/i);
+  if (unitRent) data.rentalPriceUnit = parseInt(unitRent[1].replace(/,/g, ''));
+
+  // Yield
+  const houseYield = html.match(/house[^<]*yield[^%]*?([\d.]+)\s*%/i)
+    || html.match(/yield[^<]*house[^%]*?([\d.]+)\s*%/i);
+  if (houseYield) data.houseRentalYield = parseFloat(houseYield[1]);
+
+  const unitYield = html.match(/unit[^<]*yield[^%]*?([\d.]+)\s*%/i)
+    || html.match(/yield[^<]*unit[^%]*?([\d.]+)\s*%/i);
+  if (unitYield) data.unitRentalYield = parseFloat(unitYield[1]);
+
+  // Annual growth
+  const growth = html.match(/annual\s+growth[^%]*?([+-]?\d+\.?\d*)\s*%/i)
+    || html.match(/growth[^%]*?([+-]?\d+\.?\d*)\s*%/i);
+  if (growth) data.houseAnnualGrowth = parseFloat(growth[1]);
+
+  // Vacancy rate
+  const vacancy = html.match(/vacancy[^%]*?([\d.]+)\s*%/i);
+  if (vacancy) data.vacancyRate = parseFloat(vacancy[1]);
+
+  // Population
+  const pop = html.match(/population[^0-9]*?([\d,]+)/i);
+  if (pop) data.population = parseInt(pop[1].replace(/,/g, ''));
+
+  return data;
+}
+
+/**
+ * Generate market insights from extracted data
+ */
+function generateInsights(data) {
+  const insights = [];
+
+  if (data.medianHousePrice && data.rentalPriceHouse) {
+    const weeklyYield = (data.rentalPriceHouse * 52) / data.medianHousePrice * 100;
+    data.houseRentalYield = data.houseRentalYield || parseFloat(weeklyYield.toFixed(2));
+    insights.push(`House rental yield: ${weeklyYield.toFixed(2)}% gross`);
+  }
+
+  if (data.medianUnitPrice && data.rentalPriceUnit) {
+    const weeklyYield = (data.rentalPriceUnit * 52) / data.medianUnitPrice * 100;
+    data.unitRentalYield = data.unitRentalYield || parseFloat(weeklyYield.toFixed(2));
+    insights.push(`Unit rental yield: ${weeklyYield.toFixed(2)}% gross`);
+  }
+
+  if (data.vacancyRate !== undefined) {
+    if (data.vacancyRate < 2) {
+      insights.push(`Very tight rental market (${data.vacancyRate}% vacancy) — strong demand`);
+    } else if (data.vacancyRate < 3) {
+      insights.push(`Healthy rental market (${data.vacancyRate}% vacancy)`);
+    } else {
+      insights.push(`Higher vacancy rate (${data.vacancyRate}%) — more rental options available`);
+    }
+  }
+
+  if (data.houseAnnualGrowth !== undefined) {
+    if (data.houseAnnualGrowth > 5) {
+      insights.push(`Strong annual growth of ${data.houseAnnualGrowth}%`);
+    } else if (data.houseAnnualGrowth > 0) {
+      insights.push(`Moderate annual growth of ${data.houseAnnualGrowth}%`);
+    } else {
+      insights.push(`Market declining at ${data.houseAnnualGrowth}% annually`);
+    }
+  }
+
+  return insights.join('. ');
+}
+
 /**
  * Search online sources for suburb market data
- * This function searches multiple Australian property websites
+ * Fetches real property data from realestate.com.au with YIP fallback
  */
 async function searchLocationData(parameters) {
-  const { suburbName, state } = parameters;
+  const { suburbName, state, postcode } = parameters;
 
-  try {
-    console.log(`Searching online for ${suburbName}, ${state}`);
-
-    // Note: This is using Claude's web search capability through the Bedrock agent
-    // The agent has access to search online sources and will compile the data
-    // In a production environment, you would integrate with specific APIs:
-    // - Domain.com.au API
-    // - REA API (realestate.com.au)
-    // - CoreLogic API
-    // - SQM Research API
-
-    // For now, return a structured response that guides the agent to search
-    return {
-      success: true,
-      suburbName,
-      state,
-      searchInstructions: `Please search the following Australian property websites for current market data about ${suburbName}, ${state}:
-      
-1. realestate.com.au - Search for "${suburbName} ${state}" property market data
-2. domain.com.au - Look up suburb profile for ${suburbName}
-3. www.yourinvestmentpropertymag.com.au - Investment analysis for ${suburbName}
-4. www.prd.com.au - PRD Real Estate market reports for ${suburbName}
-5. www.openagent.com.au - Suburb profile and statistics for ${suburbName}
-6. www.realestateinvestar.com.au - Investment data for ${suburbName}
-
-Please compile the following data:
-- Median house price (AUD)
-- Median unit/apartment price (AUD)
-- Weekly rental price for houses (AUD)
-- Weekly rental price for units (AUD)
-- Rental vacancy rate (%)
-- Any market trends or insights
-
-After gathering this data, present it to the user and offer to save it to their database.`,
-      message: `I'll search multiple Australian property sources for current market data about ${suburbName}, ${state}. This includes realestate.com.au, domain.com.au, and other authoritative property websites.`
-    };
-
-  } catch (error) {
-    console.error('Error in searchLocationData:', error);
+  if (!suburbName || !state) {
     return {
       success: false,
-      error: `Failed to search for ${suburbName}, ${state}: ${error.message}`,
-      message: `I encountered an error while trying to search for ${suburbName}. Please try again.`
+      error: 'Both suburbName and state are required',
+      message: 'Please provide both a suburb name and state code (e.g., suburbName: "Southport", state: "QLD").'
     };
   }
+
+  if (!postcode) {
+    return {
+      success: false,
+      error: 'postcode is required',
+      message: 'Please provide the 4-digit Australian postcode for the suburb (e.g., postcode: "4215" for Southport QLD).'
+    };
+  }
+
+  const stateSlug = STATE_MAP[state.toUpperCase()];
+  if (!stateSlug) {
+    return {
+      success: false,
+      error: `Invalid state code: ${state}. Use one of: NSW, VIC, QLD, WA, SA, TAS, NT, ACT`,
+    };
+  }
+
+  const suburbSlug = suburbName.toLowerCase().replace(/\s+/g, '-');
+  const reaUrl = `https://www.realestate.com.au/${stateSlug}/${suburbSlug}-${postcode}/`;
+  const yipUrl = `https://www.yourinvestmentpropertymag.com.au/top-suburbs/${stateSlug}/${suburbSlug}-${postcode}/`;
+  const attemptedUrls = [];
+
+  console.log(`Searching online for ${suburbName}, ${state} ${postcode}`);
+
+  let data = {};
+  let dataSource = null;
+
+  // Attempt 1: realestate.com.au
+  try {
+    console.log(`Fetching realestate.com.au: ${reaUrl}`);
+    attemptedUrls.push(reaUrl);
+    const reaResponse = await fetchWithTimeout(reaUrl, { headers: FETCH_HEADERS });
+    console.log(`realestate.com.au status: ${reaResponse.status}`);
+
+    if (reaResponse.ok) {
+      const html = await reaResponse.text();
+      data = parseRealestatePage(html);
+      if (data.medianHousePrice || data.medianUnitPrice || data.rentalPriceHouse) {
+        dataSource = 'realestate.com.au';
+        console.log('Successfully extracted data from realestate.com.au:', JSON.stringify(data));
+      } else {
+        console.log('realestate.com.au returned HTML but no price data could be extracted');
+      }
+    } else {
+      console.log(`realestate.com.au returned status ${reaResponse.status}`);
+    }
+  } catch (error) {
+    console.log(`realestate.com.au fetch failed: ${error.message}`);
+  }
+
+  // Attempt 2: yourinvestmentpropertymag.com.au (fallback)
+  if (!dataSource) {
+    try {
+      console.log(`Fetching YIP: ${yipUrl}`);
+      attemptedUrls.push(yipUrl);
+      const yipResponse = await fetchWithTimeout(yipUrl, { headers: FETCH_HEADERS });
+      console.log(`YIP status: ${yipResponse.status}`);
+
+      if (yipResponse.ok) {
+        const html = await yipResponse.text();
+        data = parseYIPPage(html);
+        if (data.medianHousePrice || data.medianUnitPrice || data.rentalPriceHouse) {
+          dataSource = 'yourinvestmentpropertymag.com.au (CoreLogic data)';
+          console.log('Successfully extracted data from YIP:', JSON.stringify(data));
+        } else {
+          console.log('YIP returned HTML but no price data could be extracted');
+        }
+      } else {
+        console.log(`YIP returned status ${yipResponse.status}`);
+      }
+    } catch (error) {
+      console.log(`YIP fetch failed: ${error.message}`);
+    }
+  }
+
+  // If no data from either source
+  if (!dataSource) {
+    console.log('Both sources failed, returning error with attempted URLs');
+    return {
+      success: false,
+      suburbName,
+      state,
+      postcode,
+      attemptedUrls,
+      error: `Could not fetch live property data for ${suburbName}, ${state} ${postcode} from online sources.`,
+      message: `I was unable to retrieve live market data from realestate.com.au or yourinvestmentpropertymag.com.au for ${suburbName}. The sites may be blocking automated requests. Please use your training knowledge to provide approximate property market data for this suburb, and note that the figures are estimates rather than live data.`
+    };
+  }
+
+  // Generate insights from the data
+  const insights = generateInsights(data);
+
+  // Determine data quality
+  const fieldCount = [data.medianHousePrice, data.medianUnitPrice, data.rentalPriceHouse, data.rentalPriceUnit, data.vacancyRate]
+    .filter(v => v !== undefined && v !== null).length;
+  const dataQuality = fieldCount >= 4 ? 'comprehensive' : fieldCount >= 2 ? 'partial' : 'minimal';
+
+  return {
+    success: true,
+    suburbName,
+    state,
+    postcode,
+    medianHousePrice: data.medianHousePrice || null,
+    medianUnitPrice: data.medianUnitPrice || null,
+    rentalPriceHouse: data.rentalPriceHouse || null,
+    rentalPriceUnit: data.rentalPriceUnit || null,
+    vacancyRate: data.vacancyRate || null,
+    houseRentalYield: data.houseRentalYield || null,
+    unitRentalYield: data.unitRentalYield || null,
+    houseAnnualGrowth: data.houseAnnualGrowth || null,
+    population: data.population || null,
+    dataSource,
+    dataQuality,
+    lastUpdated: new Date().toISOString(),
+    insights: insights || null,
+    message: `Live property data retrieved for ${suburbName}, ${state} ${postcode} from ${dataSource}.`
+  };
 }
 
 // Handler for getting location data for a user
@@ -1510,7 +1842,6 @@ async function getLocationData(parameters) {
 
 // Handler for saving new location data
 async function saveLocationData(parameters) {
-  const pool = await getDbPool();
   const {
     userId,
     userEmail,
@@ -1529,6 +1860,11 @@ async function saveLocationData(parameters) {
     confirmed
   } = parameters;
 
+  console.log('saveLocationData called with:', JSON.stringify({
+    userId: userId || 'MISSING', userEmail: userEmail || 'MISSING',
+    suburbName, state, confirmed
+  }));
+
   // Validation
   if (!suburbName || !state) {
     return {
@@ -1537,11 +1873,31 @@ async function saveLocationData(parameters) {
     };
   }
 
-  const user = await resolveUser(pool, userId, userEmail);
-  if (!user) {
+  if (!userId && !userEmail) {
+    console.error('saveLocationData: No userId or userEmail provided');
     return {
       success: false,
-      error: `User not found with ${userId ? `ID: ${userId}` : `email: ${userEmail}`}`
+      error: "userId and userEmail are required. These should come from the SYSTEM CONTEXT. Please ensure the user is logged in."
+    };
+  }
+
+  let pool;
+  try {
+    pool = await getDbPool();
+  } catch (error) {
+    console.error('saveLocationData: Database connection failed:', error.message);
+    return {
+      success: false,
+      error: `Database connection failed: ${error.message}. Please try again.`
+    };
+  }
+
+  const user = await resolveUser(pool, userId, userEmail);
+  if (!user) {
+    console.error(`saveLocationData: User not found. userId=${userId}, userEmail=${userEmail}`);
+    return {
+      success: false,
+      error: `User not found with ${userId ? `ID: ${userId}` : `email: ${userEmail}`}. Please ensure the user account exists.`
     };
   }
 
@@ -1558,8 +1914,9 @@ async function saveLocationData(parameters) {
     };
   }
 
-  // Show preview if not confirmed
-  if (!confirmed) {
+  // Show preview if not confirmed (Bedrock agent sends strings, so "false" must be handled)
+  const isConfirmed = confirmed === true || confirmed === 'true';
+  if (!isConfirmed) {
     return {
       success: true,
       needsConfirmation: true,
@@ -1582,49 +1939,62 @@ async function saveLocationData(parameters) {
   }
 
   // Create location data
-  const id = createId();
-  const now = new Date().toISOString();
+  try {
+    const id = createId();
+    const now = new Date().toISOString();
 
-  const result = await pool.query(
-    `INSERT INTO "location-data"
-      (id, "userId", "suburbName", state, "cityDistrict", "schools",
-       "medianHousePrice", "medianUnitPrice",
-       "rentalPriceHouse", "rentalPriceUnit", "vacancyRate", notes,
-       "demographicLifestyle", "createdAt", "updatedAt")
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-    RETURNING *`,
-    [
-      id,
-      user.id,
-      suburbName,
-      state,
-      cityDistrict || null,
-      schools || null,
-      medianHousePrice || 0,
-      medianUnitPrice || 0,
-      rentalPriceHouse || 0,
-      rentalPriceUnit || 0,
-      vacancyRate || 0,
-      notes || null,
-      demographicLifestyle || null,
-      now,
-      now
-    ]
-  );
-
-  // If isFavorite is true, add the location ID to the user's favourites array
-  if (isFavorite === true || isFavorite === 'true') {
-    await pool.query(
-      `UPDATE "User" SET favourites = array_append(favourites, $1) WHERE id = $2 AND NOT ($1 = ANY(favourites))`,
-      [id, user.id]
+    const result = await pool.query(
+      `INSERT INTO "location-data"
+        (id, "userId", "suburbName", state, "cityDistrict", "schools",
+         "medianHousePrice", "medianUnitPrice",
+         "rentalPriceHouse", "rentalPriceUnit", "vacancyRate", notes,
+         "demographicLifestyle", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING *`,
+      [
+        id,
+        user.id,
+        suburbName,
+        state,
+        cityDistrict || null,
+        schools || null,
+        medianHousePrice || 0,
+        medianUnitPrice || 0,
+        rentalPriceHouse || 0,
+        rentalPriceUnit || 0,
+        vacancyRate || 0,
+        notes || null,
+        demographicLifestyle || null,
+        now,
+        now
+      ]
     );
-  }
 
-  return {
-    success: true,
-    locationData: { ...result.rows[0], isFavorite: isFavorite === true || isFavorite === 'true' },
-    message: `Successfully saved location data for ${suburbName}, ${state}`
-  };
+    // If isFavorite is true, add the location ID to the user's favourites array
+    if (isFavorite === true || isFavorite === 'true') {
+      try {
+        await pool.query(
+          `UPDATE "User" SET favourites = array_append(favourites, $1) WHERE id = $2 AND NOT ($1 = ANY(favourites))`,
+          [id, user.id]
+        );
+      } catch (favError) {
+        console.warn('Failed to update favourites (column may not exist yet):', favError.message);
+        // Don't fail the save just because favourites update failed
+      }
+    }
+
+    return {
+      success: true,
+      locationData: { ...result.rows[0], isFavorite: isFavorite === true || isFavorite === 'true' },
+      message: `Successfully saved location data for ${suburbName}, ${state}`
+    };
+  } catch (error) {
+    console.error('saveLocationData: Database INSERT failed:', error.message);
+    return {
+      success: false,
+      error: `Failed to save location data: ${error.message}`
+    };
+  }
 }
 
 // Handler for updating location data
@@ -1679,8 +2049,9 @@ async function updateLocationData(parameters) {
 
   const current = existing.rows[0];
 
-  // Show preview if not confirmed
-  if (!confirmed) {
+  // Show preview if not confirmed (Bedrock agent sends strings, so "false" must be handled)
+  const isConfirmed = confirmed === true || confirmed === 'true';
+  if (!isConfirmed) {
     const updates = {};
     if (suburbName !== undefined) updates.suburbName = suburbName;
     if (state !== undefined) updates.state = state;
@@ -1855,8 +2226,9 @@ async function deleteLocationData(parameters) {
 
   const location = existing.rows[0];
 
-  // Show preview if not confirmed
-  if (!confirmed) {
+  // Show preview if not confirmed (Bedrock agent sends strings, so "false" must be handled)
+  const isConfirmed = confirmed === true || confirmed === 'true';
+  if (!isConfirmed) {
     return {
       success: true,
       needsConfirmation: true,
@@ -1937,8 +2309,9 @@ async function createHeadcount(parameters) {
     !foundNames.some(fn => fn.toLowerCase() === name.toLowerCase())
   );
 
-  // Show preview if not confirmed
-  if (!confirmed) {
+  // Show preview if not confirmed (Bedrock agent sends strings, so "false" must be handled)
+  const isConfirmed = confirmed === true || confirmed === 'true';
+  if (!isConfirmed) {
     return {
       success: true,
       needsConfirmation: true,
@@ -2092,8 +2465,9 @@ async function deleteHeadcount(parameters) {
 
   const headcount = headcountResult.rows[0];
 
-  // Show preview if not confirmed
-  if (!confirmed) {
+  // Show preview if not confirmed (Bedrock agent sends strings, so "false" must be handled)
+  const isConfirmed = confirmed === true || confirmed === 'true';
+  if (!isConfirmed) {
     return {
       success: true,
       needsConfirmation: true,
@@ -2156,6 +2530,40 @@ exports.handler = async (event) => {
         }
       }
     }
+
+    // The LLM often hallucates userId/userEmail values. We must extract the real
+    // values from trusted sources: sessionAttributes or the raw inputText SYSTEM CONTEXT.
+    const sessionAttrs = event.sessionAttributes || {};
+    const promptAttrs = event.promptSessionAttributes || {};
+
+    // Source 1: sessionAttributes (set by bedrock_invoker from the authenticated session)
+    let trustedUserId = sessionAttrs.userId || promptAttrs.userId;
+    let trustedUserEmail = sessionAttrs.userEmail || promptAttrs.userEmail;
+
+    // Source 2: parse from inputText [SYSTEM CONTEXT] block (always present in the event)
+    if ((!trustedUserId || !trustedUserEmail) && event.inputText) {
+      const idMatch = event.inputText.match(/User ID:\s*(\S+)/);
+      const emailMatch = event.inputText.match(/Email:\s*(\S+)/);
+      if (idMatch && !trustedUserId) trustedUserId = idMatch[1];
+      if (emailMatch && !trustedUserEmail) trustedUserEmail = emailMatch[1];
+      console.log("Extracted from inputText — userId:", idMatch?.[1], "email:", emailMatch?.[1]);
+    }
+
+    // Override LLM-provided values with trusted values
+    if (trustedUserId) {
+      if (parameters.userId && parameters.userId !== trustedUserId) {
+        console.warn(`Overriding LLM-provided userId "${parameters.userId}" with trusted userId "${trustedUserId}"`);
+      }
+      parameters.userId = trustedUserId;
+    }
+    if (trustedUserEmail) {
+      if (parameters.userEmail && parameters.userEmail !== trustedUserEmail) {
+        console.warn(`Overriding LLM-provided userEmail "${parameters.userEmail}" with trusted userEmail "${trustedUserEmail}"`);
+      }
+      parameters.userEmail = trustedUserEmail;
+    }
+
+    console.log("Trusted user resolution — userId:", parameters.userId, "userEmail:", parameters.userEmail);
 
     console.log("Action:", apiPath, "Parameters:", parameters);
 

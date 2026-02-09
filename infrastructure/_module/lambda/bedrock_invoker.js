@@ -116,6 +116,13 @@ exports.handler = async (event) => {
 
     console.log('Enhanced input text:', inputText);
 
+    // Build session attributes so the Lambda always has userId/userEmail
+    // even if the agent LLM forgets to pass them as action parameters
+    const sessionAttributes = {};
+    if (userId) sessionAttributes.userId = userId;
+    if (userEmail) sessionAttributes.userEmail = userEmail;
+    if (userName) sessionAttributes.userName = userName;
+
     // Invoke Bedrock Agent with session context
     const command = new InvokeAgentCommand({
       agentId: agent.agentId,
@@ -123,8 +130,9 @@ exports.handler = async (event) => {
       sessionId: sessionId,
       inputText: inputText,
       enableTrace: false,
-      // Memory configuration is handled at the agent level
-      // The session ID maintains conversation context
+      sessionState: {
+        sessionAttributes: sessionAttributes,
+      },
     });
 
     const response = await client.send(command);
