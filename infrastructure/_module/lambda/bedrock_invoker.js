@@ -123,7 +123,11 @@ exports.handler = async (event) => {
     if (userEmail) sessionAttributes.userEmail = userEmail;
     if (userName) sessionAttributes.userName = userName;
 
+    console.log('Session attributes being sent:', JSON.stringify(sessionAttributes));
+
     // Invoke Bedrock Agent with session context
+    // Pass user identity in BOTH sessionAttributes and promptSessionAttributes
+    // to ensure they reach the action group Lambda reliably
     const command = new InvokeAgentCommand({
       agentId: agent.agentId,
       agentAliasId: agent.agentAliasId,
@@ -132,6 +136,7 @@ exports.handler = async (event) => {
       enableTrace: false,
       sessionState: {
         sessionAttributes: sessionAttributes,
+        promptSessionAttributes: sessionAttributes,
       },
     });
 

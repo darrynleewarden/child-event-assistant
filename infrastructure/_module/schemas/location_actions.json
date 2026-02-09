@@ -57,7 +57,7 @@
         "/get-location-data": {
             "post": {
                 "summary": "Get saved location data for the user",
-                "description": "Retrieves location data that the user has previously saved to their database",
+                "description": "Retrieves location data that the user has previously saved to their database. User identity is resolved automatically from the session.",
                 "operationId": "getLocationData",
                 "requestBody": {
                     "required": true,
@@ -65,19 +65,7 @@
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "required": [
-                                    "userId",
-                                    "userEmail"
-                                ],
                                 "properties": {
-                                    "userId": {
-                                        "type": "string",
-                                        "description": "The user's ID from SYSTEM CONTEXT"
-                                    },
-                                    "userEmail": {
-                                        "type": "string",
-                                        "description": "The user's email from SYSTEM CONTEXT"
-                                    },
                                     "suburbName": {
                                         "type": "string",
                                         "description": "Optional: Filter by suburb name"
@@ -108,7 +96,7 @@
         "/save-location-data": {
             "post": {
                 "summary": "Save new location data",
-                "description": "Saves new suburb location data to the database. Requires confirmation.",
+                "description": "Saves new suburb location data to the database. Requires confirmation. User identity is resolved automatically from the session.",
                 "operationId": "saveLocationData",
                 "requestBody": {
                     "required": true,
@@ -117,20 +105,10 @@
                             "schema": {
                                 "type": "object",
                                 "required": [
-                                    "userId",
-                                    "userEmail",
                                     "suburbName",
                                     "state"
                                 ],
                                 "properties": {
-                                    "userId": {
-                                        "type": "string",
-                                        "description": "The user's ID from SYSTEM CONTEXT"
-                                    },
-                                    "userEmail": {
-                                        "type": "string",
-                                        "description": "The user's email from SYSTEM CONTEXT"
-                                    },
                                     "suburbName": {
                                         "type": "string",
                                         "description": "The name of the suburb"
@@ -205,7 +183,7 @@
         "/update-location-data": {
             "post": {
                 "summary": "Update existing location data",
-                "description": "Updates saved location data. Requires confirmation.",
+                "description": "Updates saved location data. Requires confirmation. User identity is resolved automatically from the session.",
                 "operationId": "updateLocationData",
                 "requestBody": {
                     "required": true,
@@ -214,19 +192,9 @@
                             "schema": {
                                 "type": "object",
                                 "required": [
-                                    "userId",
-                                    "userEmail",
                                     "locationId"
                                 ],
                                 "properties": {
-                                    "userId": {
-                                        "type": "string",
-                                        "description": "The user's ID from SYSTEM CONTEXT"
-                                    },
-                                    "userEmail": {
-                                        "type": "string",
-                                        "description": "The user's email from SYSTEM CONTEXT"
-                                    },
                                     "locationId": {
                                         "type": "string",
                                         "description": "The ID of the location data to update"
@@ -305,7 +273,7 @@
         "/delete-location-data": {
             "post": {
                 "summary": "Delete saved location data",
-                "description": "Removes location data from the database. Requires confirmation.",
+                "description": "Removes location data from the database. Requires confirmation. User identity is resolved automatically from the session.",
                 "operationId": "deleteLocationData",
                 "requestBody": {
                     "required": true,
@@ -314,19 +282,9 @@
                             "schema": {
                                 "type": "object",
                                 "required": [
-                                    "userId",
-                                    "userEmail",
                                     "locationId"
                                 ],
                                 "properties": {
-                                    "userId": {
-                                        "type": "string",
-                                        "description": "The user's ID from SYSTEM CONTEXT"
-                                    },
-                                    "userEmail": {
-                                        "type": "string",
-                                        "description": "The user's email from SYSTEM CONTEXT"
-                                    },
                                     "locationId": {
                                         "type": "string",
                                         "description": "The ID of the location data to delete"

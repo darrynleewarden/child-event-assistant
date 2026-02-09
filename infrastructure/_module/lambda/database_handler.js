@@ -1786,6 +1786,13 @@ async function getLocationData(parameters) {
   const pool = await getDbPool();
   const { userId, userEmail, suburbName, isFavorite } = parameters;
 
+  if (!userId && !userEmail) {
+    return {
+      success: false,
+      error: "User identity could not be resolved from the session. Please ensure the user is logged in."
+    };
+  }
+
   const user = await resolveUser(pool, userId, userEmail);
   if (!user) {
     return {
@@ -1874,10 +1881,10 @@ async function saveLocationData(parameters) {
   }
 
   if (!userId && !userEmail) {
-    console.error('saveLocationData: No userId or userEmail provided');
+    console.error('saveLocationData: No userId or userEmail available from session attributes');
     return {
       success: false,
-      error: "userId and userEmail are required. These should come from the SYSTEM CONTEXT. Please ensure the user is logged in."
+      error: "User identity could not be resolved from the session. Please ensure the user is logged in."
     };
   }
 
@@ -2023,6 +2030,13 @@ async function updateLocationData(parameters) {
     return {
       success: false,
       error: "locationId is required"
+    };
+  }
+
+  if (!userId && !userEmail) {
+    return {
+      success: false,
+      error: "User identity could not be resolved from the session. Please ensure the user is logged in."
     };
   }
 
@@ -2200,6 +2214,13 @@ async function deleteLocationData(parameters) {
     return {
       success: false,
       error: "locationId is required"
+    };
+  }
+
+  if (!userId && !userEmail) {
+    return {
+      success: false,
+      error: "User identity could not be resolved from the session. Please ensure the user is logged in."
     };
   }
 
@@ -2533,14 +2554,26 @@ exports.handler = async (event) => {
 
     // The LLM often hallucates userId/userEmail values. We must extract the real
     // values from trusted sources: sessionAttributes or the raw inputText SYSTEM CONTEXT.
-    const sessionAttrs = event.sessionAttributes || {};
-    const promptAttrs = event.promptSessionAttributes || {};
+    //
+    // Bedrock Agent may place session attributes at different event paths depending
+    // on the agent version and configuration, so we check all known locations.
+    const sessionAttrs = event.sessionAttributes
+      || event.sessionState?.sessionAttributes
+      || {};
+    const promptAttrs = event.promptSessionAttributes
+      || event.sessionState?.promptSessionAttributes
+      || {};
 
-    // Source 1: sessionAttributes (set by bedrock_invoker from the authenticated session)
-    let trustedUserId = sessionAttrs.userId || promptAttrs.userId;
-    let trustedUserEmail = sessionAttrs.userEmail || promptAttrs.userEmail;
+    console.log("Session attribute sources — sessionAttributes:", JSON.stringify(sessionAttrs),
+      "promptSessionAttributes:", JSON.stringify(promptAttrs),
+      "event keys:", Object.keys(event).join(", "));
 
-    // Source 2: parse from inputText [SYSTEM CONTEXT] block (always present in the event)
+    // Source 1: promptSessionAttributes (explicitly forwarded per-invocation, most reliable)
+    // Source 2: sessionAttributes (persist across turns)
+    let trustedUserId = promptAttrs.userId || sessionAttrs.userId;
+    let trustedUserEmail = promptAttrs.userEmail || sessionAttrs.userEmail;
+
+    // Source 3: parse from inputText [SYSTEM CONTEXT] block
     if ((!trustedUserId || !trustedUserEmail) && event.inputText) {
       const idMatch = event.inputText.match(/User ID:\s*(\S+)/);
       const emailMatch = event.inputText.match(/Email:\s*(\S+)/);
