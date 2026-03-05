@@ -75,6 +75,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
   },
+  cookies: {
+    sessionToken: {
+      name: "authjs.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "none",
+        secure: true,
+        path: "/",
+      },
+    },
+    callbackUrl: {
+      name: "authjs.callback-url",
+      options: {
+        sameSite: "none",
+        secure: true,
+        path: "/",
+      },
+    },
+    csrfToken: {
+      name: "authjs.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "none",
+        secure: true,
+        path: "/",
+      },
+    },
+  },
   debug: process.env.NODE_ENV === "development",
   trustHost: true,
 })
